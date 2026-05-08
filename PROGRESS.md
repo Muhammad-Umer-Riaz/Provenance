@@ -22,17 +22,17 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ## Module 2: YAML Template Engine + Strategy Handlers
 
-- [ ] Write YAML template parser with full schema validation
-- [ ] Implement `orchestrator.py` — field routing and execution order logic
-- [ ] Implement `lookup.py` strategy
-- [ ] Implement `extractor.py` strategy
-- [ ] Implement `calculator.py` strategy (safe expression evaluator)
-- [ ] Implement `template_fill.py` strategy
-- [ ] Implement `classifier.py` strategy
-- [ ] Implement `narrative_llm.py` strategy (OpenRouter, Pydantic structured output, per-field retry)
-- [ ] Wire LangSmith tracing on all field operations
+- [x] Write YAML template parser with full schema validation
+- [x] Implement `orchestrator.py` — field routing and execution order logic
+- [x] Implement `lookup.py` strategy
+- [x] Implement `extractor.py` strategy
+- [x] Implement `calculator.py` strategy (safe expression evaluator)
+- [x] Implement `template_fill.py` strategy
+- [x] Implement `classifier.py` strategy
+- [x] Implement `narrative_llm.py` strategy (OpenRouter, Pydantic structured output, per-field retry)
+- [x] Wire LangSmith tracing on all field operations
 - [x] Write full SQR YAML template (all 6 sections, all fields, lookup dictionaries, validation_rules)
-- [ ] Unit tests for deterministic strategies (calculator, classifier, lookup)
+- [x] Unit tests for deterministic strategies (calculator, classifier, lookup)
 
 ---
 
