@@ -217,3 +217,73 @@ Routing the cheap model to `classifier` and the stronger model to `narrative_llm
 Default configuration: `classifier` → `openai/gpt-4o-mini`, `narrative_llm` → `anthropic/claude-haiku-4-5` (both via OpenRouter). Both are overridable via environment variables.
 
 **Trade-off:** Two models mean two cost envelopes in LangSmith traces and two different response time profiles. Each strategy handler that calls an LLM (`classifier.py`, `narrative_llm.py`) needs to resolve its target model from config. A single model is simpler to configure and trace. The `.env.example` must document both model variables clearly to avoid silent misconfiguration.
+
+---
+
+## 16. Four-Tier Qualification Verdict
+
+**Options considered:** Three tiers (Approved / Conditional / Rejected), four tiers with Probationary between Conditional and Rejected, four tiers with Preferred above Approved
+
+**Chosen:** Four tiers — Preferred / Conditional / Probationary / Rejected — with thresholds ≥4.0 / ≥3.5 / ≥2.5 / <2.5 on the 1–5 composite score scale
+
+**Why:**
+
+The three-tier system collapses meaningfully different procurement actions into a single bucket. A score of 3.05 and a score of 3.90 both produce "Conditional" but require entirely different procurement responses — one is close to full approval, the other is close to rejection. Probationary adds a distinct state: existing purchase orders may continue, but no new orders without sign-off, and a 90-day remediation window is imposed. Preferred distinguishes strong suppliers (≥4.0) and signals strategic source candidacy, which matters for sourcing decisions beyond the qualification gate. Every tier maps to a concrete procurement action, which is reflected in the `approval_conditions_blocks` lookup and the `recommendation` narrative prompt.
+
+**Trade-off:** Four verdict paths require four `approval_conditions_blocks` lookup entries, four branches in the `next_review_date` calculator, and a more complex `points_to_next_tier` expression. All downstream logic must handle four states instead of three. The `previous_verdict` intake field also enumerates all four tiers, so historical reports using the old three-tier system would need mapping if backfilled.
+
+---
+
+## 17. SLA Thresholds — Template Defaults with Per-Evaluation Intake Overrides
+
+**Options considered:** Hardcoded literals in calculator expressions, template-level configurable block only, template defaults with per-evaluation intake override fields
+
+**Chosen:** `sla_thresholds` block in the template YAML sets defaults; five optional intake fields (`otd_pass_target`, `defect_pass_target`, etc.) allow the evaluator to override the pass threshold per evaluation; watch thresholds remain template-only
+
+**Why:**
+
+Different suppliers operate under different contractual SLA terms. A standard logistics contract might require OTD ≥90%; a premium-tier contract might require ≥95%. Applying the same template-level threshold to every evaluation produces incorrect Pass/Watch/Breach classifications when the contractual bar differs. The evaluator knows the contractual pass target; the watch threshold is an internal early-warning signal, not a contractual term, and does not need per-evaluation customisation. Five `effective_pass` calculator fields resolve to the intake override if provided, otherwise fall back to the template default — keeping the rest of the computation chain unchanged.
+
+**Trade-off:** Five additional intake fields add form length. Evaluators who do not know their contractual SLA or leave the fields blank will silently inherit the template defaults, which may not reflect their actual contract. Label text showing the default value (`blank = 90% default`) mitigates this. The watch threshold is not overridable per-evaluation, which means the watch zone width changes implicitly when a pass threshold is customised.
+
+---
+
+## 18. Qualification Type and Previous Period Context
+
+**Options considered:** Single qualification type with no history fields, qualification type enum with previous verdict and score only, full previous-period context including performance metrics
+
+**Chosen:** `qualification_type` enum (Initial qualification / Re-qualification / For-cause review), with optional `previous_verdict`, `previous_composite_score`, and three optional previous-period performance metrics (`prev_otd_rate_pct`, `prev_defect_rate_pct`, `prev_invoice_accuracy_pct`)
+
+**Why:**
+
+Re-qualification narratives are structurally different from initial qualifications. Without previous context, the LLM cannot produce a meaningful trend sentence — "improved from 3.4 to 3.8" vs. "first assessment at 3.8" are different reports. The three previous-period performance metrics (OTD, defect rate, invoice accuracy) enable trend direction calculator fields (`otd_trend`, `defect_trend`, `invoice_trend`) that feed the performance narrative. NCR count and NCR close time are excluded because point-in-time comparisons on those metrics carry less trend signal than rate-based metrics. All previous-period fields are conditional on `qualification_type != 'Initial qualification'` so the intake form stays clean for first-time qualifications.
+
+**Trade-off:** Previous data is manually entered by the evaluator — there is no supplier registry or automatic history lookup in v1. The evaluator must retrieve the previous verdict and scores from the prior report before starting the form. A `suppliers` table with report history linkage is the v2 path to auto-population; the current schema supports this migration (supplier name is in `intake_data`, which can be used as a lookup key when a `suppliers` table is added).
+
+---
+
+## 19. Pre-Computed Calculator Fields for Complex Prompt Expressions
+
+**Options considered:** Inline expressions evaluated mid-string inside `narrative_llm` prompt templates (e.g. `{{min(audit_scores, by=weighted_score).criterion}}`), pre-computed named `calculator` fields referenced by simple `{{field_id}}` tokens in prompts
+
+**Chosen:** Pre-computed named `calculator` fields
+
+**Why:**
+
+Inline expressions inside prompt strings require the template engine to parse and evaluate arbitrary expressions mid-string at prompt-build time. They cannot be independently tracked in the audit log, are evaluated redundantly when referenced more than once in the same prompt, and make prompts harder to read. Named calculator fields (`lowest_criterion_name`, `otd_effective_pass`, `breach_count`, etc.) are computed once, stored as discrete `report_fields` rows, appear in the audit log with their own strategy, inputs, and output, and are referenced in prompts as simple tokens. This keeps prompt strings as readable lists of named values and extends the audit trail to every intermediate computation.
+
+**Trade-off:** Each pre-computed field adds a row to `report_fields` and an entry to the audit log. A report with many pre-computed calculator fields has a longer audit trail. This is a feature, not overhead — the additional entries make the computation chain fully traceable. The only cost is slightly more YAML verbosity.
+
+---
+
+## 20. Rule-Based Classifier When Explicit Threshold Rules Are Provided
+
+**Options considered:** Always call LLM for `classifier` fields (consistent with the strategy name), use rule engine when `rules:` are defined in the YAML and LLM only as fallback, always use rule engine (no LLM for any classifier)
+
+**Chosen:** Rule-based evaluation when the field definition includes explicit `rules:`; LLM-based (gpt-4o-mini) only when no rules are defined
+
+**Why:**
+
+Both SQR classifiers (`qualification_verdict`, `overall_risk_tier`) define explicit threshold rules in the YAML. These are deterministic mappings — a composite score of 3.8 always produces "Conditional" given the defined thresholds. Calling an LLM for a deterministic mapping introduces non-determinism, latency, and cost with no quality benefit. The `classifier` strategy handler inspects the field definition at runtime: if `rules:` is present, it evaluates them in order and returns the first match; if absent, it delegates to the LLM with a constrained output schema. This preserves the strategy's flexibility for templates that genuinely need classification (e.g. categorising free-text input into an enum) while keeping the SQR template fully deterministic for its classification fields.
+
+**Trade-off:** The strategy handler has two code paths. The rule evaluator must handle the same expression syntax as `calculator.py` for condition strings. Reusing the calculator's expression engine for rule conditions avoids duplicating the evaluator but creates a dependency between two strategy handlers.

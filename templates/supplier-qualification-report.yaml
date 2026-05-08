@@ -18,6 +18,16 @@ intake:
     required: true
     label: "Country of operation"
 
+  supplier_contact_name:
+    type: string
+    required: false
+    label: "Supplier contact name"
+
+  supplier_contact_title:
+    type: string
+    required: false
+    label: "Supplier contact title / role"
+
   commodity_category:
     type: enum
     required: true
@@ -59,17 +69,45 @@ intake:
     required: true
     label: "Evaluator name"
 
+  qualification_type:
+    type: enum
+    required: true
+    label: "Qualification type"
+    values:
+      - "Initial qualification"
+      - "Re-qualification"
+      - "For-cause review"
+
+  previous_verdict:
+    type: enum
+    required: false
+    label: "Previous qualification verdict"
+    values:
+      - "Preferred"
+      - "Conditional"
+      - "Probationary"
+      - "Rejected"
+    condition: "qualification_type != 'Initial qualification'"
+
+  previous_composite_score:
+    type: number
+    required: false
+    label: "Previous composite score"
+    validation: { min: 0.0, max: 5.0 }
+    condition: "qualification_type != 'Initial qualification'"
+
   # Scorecard
   audit_scores:
     type: table
     required: true
-    label: "Audit scorecard — score each criterion 1 (poor) to 5 (excellent)"
+    label: "Audit scorecard — adjust weights if needed (must sum to 1.0), then score each criterion 1–5"
     columns:
-      - { name: criterion,     label: "Criterion",         type: string,  editable: false }
-      - { name: weight,        label: "Weight",             type: number,  editable: false }
-      - { name: score,         label: "Score (1–5)",        type: integer,
+      - { name: criterion, label: "Criterion",                    type: string,  editable: false }
+      - { name: weight,    label: "Weight (must sum to 1.0)",     type: number,  editable: true,
+          validation: { min: 0.0, max: 1.0 } }
+      - { name: score,     label: "Score (1–5)",                  type: integer,
           validation: { min: 1, max: 5 } }
-      - { name: notes,         label: "Evaluator notes",    type: string,  required: false }
+      - { name: notes,     label: "Evaluator notes",              type: string,  required: false }
     default_rows:
       - { criterion: "Quality management system",           weight: 0.25 }
       - { criterion: "On-time delivery history",            weight: 0.25 }
@@ -107,6 +145,59 @@ intake:
     type: number
     required: false
     label: "Average NCR close time (days)"
+
+  # Previous period metrics (re-qualification and for-cause only)
+  prev_otd_rate_pct:
+    type: number
+    required: false
+    label: "Previous period OTD rate (%)"
+    validation: { min: 0, max: 100 }
+    condition: "qualification_type != 'Initial qualification'"
+
+  prev_defect_rate_pct:
+    type: number
+    required: false
+    label: "Previous period defect rate (%)"
+    validation: { min: 0, max: 100 }
+    condition: "qualification_type != 'Initial qualification'"
+
+  prev_invoice_accuracy_pct:
+    type: number
+    required: false
+    label: "Previous period invoice accuracy (%)"
+    validation: { min: 0, max: 100 }
+    condition: "qualification_type != 'Initial qualification'"
+
+  # SLA pass-target overrides — leave blank to use template defaults
+  otd_pass_target:
+    type: number
+    required: false
+    label: "OTD pass threshold (%) — blank = 90% default"
+    validation: { min: 0, max: 100 }
+
+  defect_pass_target:
+    type: number
+    required: false
+    label: "Defect rate pass threshold (%) — blank = 1.5% default"
+    validation: { min: 0, max: 100 }
+
+  invoice_pass_target:
+    type: number
+    required: false
+    label: "Invoice accuracy pass threshold (%) — blank = 95% default"
+    validation: { min: 0, max: 100 }
+
+  ncr_count_pass_target:
+    type: integer
+    required: false
+    label: "Max open NCRs to pass — blank = 2 default"
+    validation: { min: 0 }
+
+  ncr_close_pass_target:
+    type: number
+    required: false
+    label: "NCR close time pass threshold (days) — blank = 14 default"
+    validation: { min: 0 }
 
   # Risk register
   risk_register:
@@ -155,11 +246,21 @@ sections:
         fields:
           - supplier_name
           - supplier_country
+          - supplier_contact_name
+          - supplier_contact_title
           - commodity_category
           - duns_number
           - certifications_held
           - review_period
           - evaluator_name
+          - qualification_type
+
+      - id: issue_date
+        type: field
+        strategy: calculator
+        expression: "today"
+        format: "YYYY-MM-DD"
+        label: "Issue date"
 
       - id: qualification_scope
         type: narrative
@@ -191,9 +292,44 @@ sections:
         strategy: classifier
         input: composite_score
         rules:
-          - { condition: "composite_score >= 4.0", output: "Approved" }
-          - { condition: "composite_score >= 3.0", output: "Conditional" }
-          - { condition: "composite_score < 3.0",  output: "Rejected" }
+          - { condition: "composite_score >= 4.0", output: "Preferred" }
+          - { condition: "composite_score >= 3.5", output: "Conditional" }
+          - { condition: "composite_score >= 2.5", output: "Probationary" }
+          - { condition: "composite_score < 2.5",  output: "Rejected" }
+
+      - id: lowest_criterion_name
+        type: field
+        strategy: calculator
+        expression: "min_by(audit_scores, key='weighted_score').criterion"
+
+      - id: lowest_criterion_score
+        type: field
+        strategy: calculator
+        expression: "min_by(audit_scores, key='weighted_score').score"
+
+      - id: lowest_criterion_note
+        type: field
+        strategy: calculator
+        expression: "min_by(audit_scores, key='weighted_score').notes"
+        null_value: ""
+
+      - id: points_to_next_tier
+        type: field
+        strategy: calculator
+        expression: |
+          qualification_verdict == 'Preferred'    ? 0 :
+          qualification_verdict == 'Conditional'  ? round(4.0 - composite_score, 2) :
+          qualification_verdict == 'Probationary' ? round(3.5 - composite_score, 2) :
+                                                    round(2.5 - composite_score, 2)
+
+      - id: points_above_floor
+        type: field
+        strategy: calculator
+        expression: |
+          qualification_verdict == 'Preferred'    ? round(composite_score - 4.0, 2) :
+          qualification_verdict == 'Conditional'  ? round(composite_score - 3.5, 2) :
+          qualification_verdict == 'Probationary' ? round(composite_score - 2.5, 2) :
+                                                    0
 
       - id: scorecard_summary
         type: narrative
@@ -202,15 +338,18 @@ sections:
           Write a 2–3 sentence scorecard summary paragraph.
           Composite score: {{composite_score}} / 5.00
           Verdict: {{qualification_verdict}}
-          Lowest-scoring criterion: {{min(audit_scores, by=weighted_score).criterion}}
-          at score {{min(audit_scores, by=weighted_score).score}}/5.
+          Points to next tier: {{points_to_next_tier}} (0 if already Preferred)
+          Points above current tier floor: {{points_above_floor}}
+          Lowest-scoring criterion: {{lowest_criterion_name}} at {{lowest_criterion_score}}/5
+          Evaluator note on lowest criterion: {{lowest_criterion_note}} (omit if blank)
+          Previous composite score: {{previous_composite_score}} (omit if blank; if present, note whether score improved, declined, or held stable)
           Style: factual, third-person, professional procurement language.
           Do not repeat the verdict word verbatim in the first sentence.
         exemplars:
           - "The supplier achieved a composite score of X.XX, demonstrating [strength areas].
              The primary area for improvement is [lowest criterion], which [brief reason].
-             [Verdict sentence]."
-        max_tokens: 120
+             [Verdict sentence with margin context, e.g. 0.20 points from Preferred threshold]."
+        max_tokens: 150
 
   - id: performance
     title: "Delivery & Quality Performance"
@@ -226,30 +365,94 @@ sections:
           - invoice_accuracy_pct
           - open_ncr_count
           - ncr_avg_close_days
-        computed_columns:
-          - name: sla_status
-            strategy: calculator
-            per_field_thresholds:
-              otd_rate_pct:         { pass: ">=90",   watch: ">=85",  breach: "<85"  }
-              defect_rate_pct:      { pass: "<=1.5",  watch: "<=3.0", breach: ">3.0" }
-              invoice_accuracy_pct: { pass: ">=95",   watch: ">=90",  breach: "<90"  }
-              open_ncr_count:       { pass: "<=2",    watch: "<=4",   breach: ">4"   }
-              ncr_avg_close_days:   { pass: "<=14",   watch: "<=21",  breach: ">21"  }
+
+      - id: otd_effective_pass
+        type: field
+        strategy: calculator
+        expression: "otd_pass_target or sla_thresholds.otd_rate_pct.pass"
+
+      - id: defect_effective_pass
+        type: field
+        strategy: calculator
+        expression: "defect_pass_target or sla_thresholds.defect_rate_pct.pass"
+
+      - id: invoice_effective_pass
+        type: field
+        strategy: calculator
+        expression: "invoice_pass_target or sla_thresholds.invoice_accuracy_pct.pass"
+
+      - id: ncr_count_effective_pass
+        type: field
+        strategy: calculator
+        expression: "ncr_count_pass_target or sla_thresholds.open_ncr_count.pass"
+
+      - id: ncr_close_effective_pass
+        type: field
+        strategy: calculator
+        expression: "ncr_close_pass_target or sla_thresholds.ncr_avg_close_days.pass"
+
+      - id: otd_sla_status
+        type: field
+        strategy: calculator
+        expression: "otd_rate_pct >= otd_effective_pass ? 'Pass' : otd_rate_pct >= sla_thresholds.otd_rate_pct.watch ? 'Watch' : 'Breach'"
+
+      - id: defect_sla_status
+        type: field
+        strategy: calculator
+        expression: "defect_rate_pct <= defect_effective_pass ? 'Pass' : defect_rate_pct <= sla_thresholds.defect_rate_pct.watch ? 'Watch' : 'Breach'"
+
+      - id: invoice_sla_status
+        type: field
+        strategy: calculator
+        expression: "invoice_accuracy_pct >= invoice_effective_pass ? 'Pass' : invoice_accuracy_pct >= sla_thresholds.invoice_accuracy_pct.watch ? 'Watch' : 'Breach'"
+
+      - id: ncr_count_sla_status
+        type: field
+        strategy: calculator
+        expression: "open_ncr_count <= ncr_count_effective_pass ? 'Pass' : open_ncr_count <= sla_thresholds.open_ncr_count.watch ? 'Watch' : 'Breach'"
+
+      - id: ncr_close_sla_status
+        type: field
+        strategy: calculator
+        expression: "ncr_avg_close_days <= ncr_close_effective_pass ? 'Pass' : ncr_avg_close_days <= sla_thresholds.ncr_avg_close_days.watch ? 'Watch' : 'Breach'"
+        null_value: "N/A"
+
+      - id: otd_trend
+        type: field
+        strategy: calculator
+        expression: "otd_rate_pct > prev_otd_rate_pct ? 'improving' : otd_rate_pct < prev_otd_rate_pct ? 'declining' : 'stable'"
+        condition: "prev_otd_rate_pct is not None"
+        null_value: ""
+
+      - id: defect_trend
+        type: field
+        strategy: calculator
+        expression: "defect_rate_pct < prev_defect_rate_pct ? 'improving' : defect_rate_pct > prev_defect_rate_pct ? 'declining' : 'stable'"
+        condition: "prev_defect_rate_pct is not None"
+        null_value: ""
+
+      - id: invoice_trend
+        type: field
+        strategy: calculator
+        expression: "invoice_accuracy_pct > prev_invoice_accuracy_pct ? 'improving' : invoice_accuracy_pct < prev_invoice_accuracy_pct ? 'declining' : 'stable'"
+        condition: "prev_invoice_accuracy_pct is not None"
+        null_value: ""
 
       - id: performance_narrative
         type: narrative
         strategy: narrative_llm
         prompt: |
           Write a 2–3 sentence performance narrative.
-          OTD: {{otd_rate_pct}}% (target ≥90%, status: {{otd_sla_status}})
-          Defect rate: {{defect_rate_pct}}% (target ≤1.5%)
-          Invoice accuracy: {{invoice_accuracy_pct}}%
-          Open NCRs: {{open_ncr_count}} (target ≤2)
-          NCR avg close: {{ncr_avg_close_days}} days (target ≤14)
+          OTD: {{otd_rate_pct}}% (target ≥{{otd_effective_pass}}%, status: {{otd_sla_status}}, trend: {{otd_trend}})
+          Defect rate: {{defect_rate_pct}}% (target ≤{{defect_effective_pass}}%, status: {{defect_sla_status}}, trend: {{defect_trend}})
+          Invoice accuracy: {{invoice_accuracy_pct}}% (target ≥{{invoice_effective_pass}}%, status: {{invoice_sla_status}}, trend: {{invoice_trend}})
+          Open NCRs: {{open_ncr_count}} (target ≤{{ncr_count_effective_pass}}, status: {{ncr_count_sla_status}})
+          NCR avg close: {{ncr_avg_close_days}} days (target ≤{{ncr_close_effective_pass}} days, status: {{ncr_close_sla_status}})
           Lead with the most significant breach or concern.
+          If trend data is present (not blank), note whether performance is improving or declining.
           If all metrics pass, note overall satisfactory performance.
           Style: factual, third-person.
-        max_tokens: 150
+        max_tokens: 160
 
   - id: risk_assessment
     title: "Risk Assessment"
@@ -260,6 +463,7 @@ sections:
         type: table
         strategy: extractor
         source: risk_register
+        sort_by: { field: priority_score, order: desc }
         computed_columns:
           - { name: priority_score, expression: "likelihood * impact",
               label: "Priority score" }
@@ -273,17 +477,33 @@ sections:
           - { condition: "max_priority >= 8",  output: "Medium" }
           - { condition: "max_priority < 8",   output: "Low" }
 
+      - id: second_risk_item
+        type: field
+        strategy: calculator
+        expression: "risk_register[1].risk_item if len(risk_register) > 1 else 'No additional risks identified'"
+
+      - id: second_risk_priority
+        type: field
+        strategy: calculator
+        expression: "risk_register[1].priority_score if len(risk_register) > 1 else 0"
+
+      - id: second_risk_mitigation
+        type: field
+        strategy: calculator
+        expression: "risk_register[1].mitigation if len(risk_register) > 1 else ''"
+
       - id: risk_narrative
         type: narrative
         strategy: narrative_llm
         prompt: |
           Write a 2–3 sentence risk narrative.
           Overall risk tier: {{overall_risk_tier}}
-          Top 2 risks by priority score:
+          Top risks by priority score (sorted highest first):
           1. {{risk_register[0].risk_item}} — priority {{risk_register[0].priority_score}}
              Mitigation: {{risk_register[0].mitigation}}
-          2. {{risk_register[1].risk_item}} — priority {{risk_register[1].priority_score}}
-             Mitigation: {{risk_register[1].mitigation}}
+          2. {{second_risk_item}} — priority {{second_risk_priority}}
+             Mitigation: {{second_risk_mitigation}}
+          If Risk 2 is "No additional risks identified", discuss only Risk 1.
           Name the risks explicitly. Describe the mitigation approach concisely.
           Style: factual, risk-management register language.
         max_tokens: 150
@@ -303,12 +523,24 @@ sections:
         strategy: classifier
         input: qualification_verdict
         source: "approval_conditions_blocks[qualification_verdict]"
-        condition: "qualification_verdict != 'Approved'"
+        condition: "qualification_verdict != 'Preferred'"
+
+      - id: rejection_remediation_notes
+        type: narrative
+        strategy: direct_input
+        condition: "qualification_verdict == 'Rejected'"
+        label: "Remediation requirements before re-qualification"
+        hint: "List the specific actions the supplier must complete before submitting for re-qualification."
 
       - id: car_table
         type: table
         strategy: extractor
         source: corrective_actions
+
+      - id: overdue_car_count
+        type: field
+        strategy: calculator
+        expression: "count(corrective_actions, status='Overdue')"
 
       - id: car_summary
         type: narrative
@@ -316,11 +548,13 @@ sections:
         prompt: |
           Write a 2–3 sentence CAR summary paragraph.
           Open CAR count: {{count(corrective_actions, status='Open')}}
+          Overdue CAR count: {{overdue_car_count}}
           Total CARs: {{count(corrective_actions)}}
           Earliest due date: {{min(corrective_actions[*].due_date)}}
-          If verdict is Conditional, name the conditions that are CAR-gated.
+          If verdict is Conditional or Probationary, name the conditions that are CAR-gated.
+          If overdue_car_count > 0, note that overdue items represent missed commitments and require escalation.
           Verdict: {{qualification_verdict}}
-        max_tokens: 130
+        max_tokens: 150
         condition: "count(corrective_actions) > 0"
 
       - id: car_followup
@@ -333,6 +567,16 @@ sections:
     order: 6
     content:
 
+      - id: breach_count
+        type: field
+        strategy: calculator
+        expression: |
+          (otd_sla_status == 'Breach' ? 1 : 0) +
+          (defect_sla_status == 'Breach' ? 1 : 0) +
+          (invoice_sla_status == 'Breach' ? 1 : 0) +
+          (ncr_count_sla_status == 'Breach' ? 1 : 0) +
+          (ncr_close_sla_status == 'Breach' ? 1 : 0)
+
       - id: executive_summary
         type: narrative
         strategy: narrative_llm
@@ -340,38 +584,61 @@ sections:
           Write a 2–3 sentence executive summary.
           Supplier: {{intake.supplier_name}}
           Commodity: {{intake.commodity_category}}
+          Qualification type: {{qualification_type}}
           Composite score: {{composite_score}} / 5.00
           Verdict: {{qualification_verdict}}
+          Previous verdict: {{previous_verdict}} (omit if blank)
+          Previous composite score: {{previous_composite_score}} (omit if blank)
           Overall risk tier: {{overall_risk_tier}}
           Top risk: {{risk_register[0].risk_item}}
+          SLA breaches: {{breach_count}} metric(s) in Breach status
           State the verdict clearly in the first sentence.
-        max_tokens: 140
+          If breach_count > 0, note that performance data shows active SLA breaches.
+          If this is a re-qualification, compare current score to previous (improving / declining / stable).
+        max_tokens: 170
 
       - id: recommendation
         type: narrative
         strategy: narrative_llm
         prompt: |
           Write a 2–3 sentence procurement recommendation.
+          Qualification type: {{qualification_type}}
           Verdict: {{qualification_verdict}}
+          Previous verdict: {{previous_verdict}} (omit if blank)
           Open CARs: {{count(corrective_actions, status='Open')}}
           Conditions (if any): {{approval_conditions_blocks[qualification_verdict]}}
           Overall risk tier: {{overall_risk_tier}}
-          Give a concrete recommended action (maintain, escalate, initiate secondary
-          source, place on restricted list, etc.).
-        max_tokens: 140
+          Action guidance by verdict tier:
+            Preferred → maintain as preferred/strategic source, schedule 12-month review
+            Conditional → maintain with active CAR monitoring, flag for 6-month re-evaluation
+            Probationary → restrict new POs pending CAR closure, initiate secondary source search
+            Rejected → halt new POs, place on restricted list, initiate secondary source
+          If re-qualification, frame the recommendation relative to the previous status.
+        max_tokens: 160
 
       - id: next_review_date
         type: field
         strategy: calculator
         expression: |
-          qualification_verdict == 'Approved'    ? today + 12_months :
-          qualification_verdict == 'Conditional' ? today + 6_months  :
-                                                   today + 3_months
+          qualification_verdict == 'Preferred'     ? today + 12_months :
+          qualification_verdict == 'Conditional'   ? today + 6_months  :
+                                                     today + 3_months
 
       - id: signatory_block
         type: narrative
         strategy: lookup
         source: signatory_block
+
+# ── SLA thresholds ─────────────────────────────────────────────────────────────
+# Edit these values to match the contractual SLA for a specific supplier or category.
+# Calculator expressions reference these by name so changing a value here
+# updates both the computation and the narrative prompt context.
+sla_thresholds:
+  otd_rate_pct:         { pass: 90,   watch: 85  }
+  defect_rate_pct:      { pass: 1.5,  watch: 3.0 }
+  invoice_accuracy_pct: { pass: 95,   watch: 90  }
+  open_ncr_count:       { pass: 2,    watch: 4   }
+  ncr_avg_close_days:   { pass: 14,   watch: 21  }
 
 # ── Lookup dictionaries ────────────────────────────────────────────────────────
 lookup_sources:
@@ -405,7 +672,13 @@ lookup_sources:
     "Conditional": >
       Conditional approval is granted subject to resolution of all open CARs
       within the specified due dates. Failure to close CARs by the stated
-      deadlines will result in downgrade to Restricted supplier status.
+      deadlines will result in downgrade to Probationary status.
+    "Probationary": >
+      Probationary status is granted on a time-limited basis. Existing purchase
+      orders may continue; no new purchase orders may be raised without explicit
+      Procurement Lead sign-off. Full remediation of all open CARs is required
+      within the stated due dates. Failure to remediate within 90 days will
+      result in Rejected status. Re-evaluation is scheduled within 90 days.
     "Rejected": >
       This supplier does not currently meet qualification criteria. No new purchase
       orders may be raised. Existing orders must be reviewed with the Procurement
@@ -438,11 +711,24 @@ validation_rules:
     severity: error
 
   - id: verdict_car_consistency
-    description: "Conditional/Rejected verdict should have at least one CAR"
-    check: "qualification_verdict == 'Approved' OR count(corrective_actions) >= 1"
+    description: "Non-Preferred verdict should have at least one CAR"
+    check: "qualification_verdict == 'Preferred' OR count(corrective_actions) >= 1"
     severity: warning
     message: "Verdict is {{qualification_verdict}} but no CARs have been entered.
               Consider adding corrective actions."
+
+  - id: overdue_car_date_check
+    description: "Open or in-progress CARs should not be past their due date"
+    check: "for each car where status in ['Open', 'In progress'],
+            car.due_date >= today"
+    severity: warning
+    message: "CAR '{{car.car_id}}' — '{{car.action_item}}' was due {{car.due_date}} and is past due. Update status to Overdue or close the action."
+
+  - id: high_tier_risk_count
+    description: "High risk tier should have at least 3 risks documented"
+    check: "overall_risk_tier != 'High' OR count(risk_register) >= 3"
+    severity: warning
+    message: "Overall risk tier is High but only {{count(risk_register)}} risk(s) are documented. Consider adding more risks for a complete assessment."
 
   - id: high_risk_car_coverage
     description: "Each High-priority risk should have a corresponding CAR"
@@ -452,8 +738,8 @@ validation_rules:
     message: "High-priority risk '{{risk_item}}' has no corresponding CAR."
 
   - id: performance_verdict_alignment
-    description: "Breach-level performance should not yield Approved verdict"
-    check: "NOT (count(sla_breach_flags) >= 2 AND qualification_verdict == 'Approved')"
+    description: "Breach-level performance should not yield Preferred verdict"
+    check: "NOT (count(sla_breach_flags) >= 2 AND qualification_verdict == 'Preferred')"
     severity: warning
-    message: "Two or more SLA breaches present but verdict is Approved.
+    message: "Two or more SLA breaches present but verdict is Preferred.
               Verify scorecard scores reflect performance data."

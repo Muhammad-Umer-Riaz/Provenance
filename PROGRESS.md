@@ -31,7 +31,7 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 - [ ] Implement `classifier.py` strategy
 - [ ] Implement `narrative_llm.py` strategy (OpenRouter, Pydantic structured output, per-field retry)
 - [ ] Wire LangSmith tracing on all field operations
-- [ ] Write full SQR YAML template (all 6 sections, all fields, lookup dictionaries, validation_rules)
+- [x] Write full SQR YAML template (all 6 sections, all fields, lookup dictionaries, validation_rules)
 - [ ] Unit tests for deterministic strategies (calculator, classifier, lookup)
 
 ---
