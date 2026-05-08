@@ -6,16 +6,17 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ## Module 1: Project Setup & Scaffold
 
-- [ ] Create repo and folder structure
-- [ ] Create `CLAUDE.md` (project-specific instructions for Claude Code)
-- [ ] Initialize FastAPI backend skeleton (health check endpoint)
-- [ ] Initialize React + Vite + Tailwind + shadcn/ui frontend skeleton
-- [ ] Set up Supabase project (Postgres + Auth + Realtime + Storage)
-- [ ] Write initial Supabase schema migration (templates, reports, report_fields, audit_log tables)
-- [ ] Apply RLS policies on all tables
-- [ ] Configure environment variables (`.env` pattern, `.env.example`)
-- [ ] Implement YAML template file loading and basic validation on startup
-- [ ] `git init` and initial commit
+- [x] Create repo and folder structure
+- [x] Create `CLAUDE.md` (project-specific instructions for Claude Code)
+- [x] Initialize FastAPI backend skeleton (health check endpoint)
+- [x] Initialize React + Vite + Tailwind v4 + shadcn/ui frontend skeleton
+- [ ] Set up Supabase project (Postgres + Auth + Realtime + Storage) — **manual step: create project at supabase.com**
+- [x] Write initial Supabase schema migration (templates, reports, report_fields, audit_log tables)
+- [x] Apply RLS policies on all tables (in migration file)
+- [x] Configure environment variables (`.env` pattern, `.env.example`)
+- [x] Implement YAML template file loading and basic validation on startup
+- [ ] Link Supabase CLI and push migration — **manual step: `supabase login` then `supabase link` then `supabase db push`**
+- [x] `git init` and initial commit — committed planning files (fe1de2d)
 
 ---
 

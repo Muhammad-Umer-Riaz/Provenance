@@ -1,0 +1,459 @@
+template:
+  id: supplier-qualification-report
+  version: "1.0"
+  name: "Supplier Qualification Report"
+  description: "Standard qualification assessment for Tier-1 and Tier-2 suppliers"
+
+# ── Intake schema ──────────────────────────────────────────────────────────────
+intake:
+
+  # Header fields
+  supplier_name:
+    type: string
+    required: true
+    label: "Supplier name"
+
+  supplier_country:
+    type: string
+    required: true
+    label: "Country of operation"
+
+  commodity_category:
+    type: enum
+    required: true
+    label: "Commodity category"
+    values:
+      - "Precision machined components"
+      - "Electronic assemblies"
+      - "Raw materials — metals"
+      - "Raw materials — polymers"
+      - "Packaging materials"
+      - "Logistics services"
+      - "Software & IT services"
+
+  duns_number:
+    type: string
+    required: false
+    label: "DUNS number (optional)"
+
+  certifications_held:
+    type: multi_enum
+    required: false
+    label: "Certifications held"
+    values:
+      - "ISO 9001:2015"
+      - "ISO 14001:2015"
+      - "IATF 16949"
+      - "EN 9100"
+      - "ISO 45001"
+      - "ISO 27001"
+      - "None"
+
+  review_period:
+    type: string
+    required: true
+    label: "Review period (e.g. Q1 2026 / Jan–Mar 2026)"
+
+  evaluator_name:
+    type: string
+    required: true
+    label: "Evaluator name"
+
+  # Scorecard
+  audit_scores:
+    type: table
+    required: true
+    label: "Audit scorecard — score each criterion 1 (poor) to 5 (excellent)"
+    columns:
+      - { name: criterion,     label: "Criterion",         type: string,  editable: false }
+      - { name: weight,        label: "Weight",             type: number,  editable: false }
+      - { name: score,         label: "Score (1–5)",        type: integer,
+          validation: { min: 1, max: 5 } }
+      - { name: notes,         label: "Evaluator notes",    type: string,  required: false }
+    default_rows:
+      - { criterion: "Quality management system",           weight: 0.25 }
+      - { criterion: "On-time delivery history",            weight: 0.25 }
+      - { criterion: "Financial stability",                 weight: 0.20 }
+      - { criterion: "Technical / engineering capability",  weight: 0.15 }
+      - { criterion: "Corrective action responsiveness",    weight: 0.10 }
+      - { criterion: "Sustainability & compliance",         weight: 0.05 }
+
+  # Performance metrics
+  otd_rate_pct:
+    type: number
+    required: true
+    label: "On-time delivery rate (%)"
+    validation: { min: 0, max: 100 }
+
+  defect_rate_pct:
+    type: number
+    required: true
+    label: "Incoming defect / rejection rate (%)"
+    validation: { min: 0, max: 100 }
+
+  invoice_accuracy_pct:
+    type: number
+    required: true
+    label: "Invoice accuracy (%)"
+    validation: { min: 0, max: 100 }
+
+  open_ncr_count:
+    type: integer
+    required: true
+    label: "Open NCR count"
+    validation: { min: 0 }
+
+  ncr_avg_close_days:
+    type: number
+    required: false
+    label: "Average NCR close time (days)"
+
+  # Risk register
+  risk_register:
+    type: table
+    required: true
+    label: "Risk register — add all identified risks"
+    min_rows: 1
+    columns:
+      - { name: risk_item,   label: "Risk item",        type: string,  required: true }
+      - { name: likelihood,  label: "Likelihood (1–5)", type: integer,
+          validation: { min: 1, max: 5 } }
+      - { name: impact,      label: "Impact (1–5)",     type: integer,
+          validation: { min: 1, max: 5 } }
+      - { name: owner,       label: "Owner",            type: string,  required: true }
+      - { name: mitigation,  label: "Mitigation note",  type: string,  required: false }
+
+  # Corrective actions
+  corrective_actions:
+    type: table
+    required: false
+    label: "Corrective action requests (CARs)"
+    columns:
+      - { name: car_id,      label: "CAR #",       type: string }
+      - { name: action_item, label: "Action item",  type: string, required: true }
+      - { name: owner,       label: "Owner",        type: string, required: true }
+      - { name: due_date,    label: "Due date",     type: date }
+      - { name: status,      label: "Status",       type: enum,
+          values: ["Open", "In progress", "Closed", "Overdue"] }
+
+# ── Sections ───────────────────────────────────────────────────────────────────
+sections:
+
+  - id: supplier_header
+    title: "Supplier & Engagement Header"
+    order: 1
+    content:
+
+      - id: report_header_line
+        type: structured_block
+        strategy: template_fill
+        template: "SQR-{{report_id}} · {{intake.supplier_name}} · {{intake.review_period}}"
+
+      - id: supplier_details
+        type: structured_block
+        strategy: extractor
+        fields:
+          - supplier_name
+          - supplier_country
+          - commodity_category
+          - duns_number
+          - certifications_held
+          - review_period
+          - evaluator_name
+
+      - id: qualification_scope
+        type: narrative
+        strategy: lookup
+        source: "qualification_scope_statements[commodity_category]"
+
+  - id: audit_scorecard
+    title: "Audit Scorecard"
+    order: 2
+    content:
+
+      - id: scorecard_table
+        type: table
+        strategy: extractor
+        source: audit_scores
+        computed_columns:
+          - { name: weighted_score, expression: "score * weight",
+              label: "Weighted score", format: "0.00" }
+
+      - id: composite_score
+        type: field
+        strategy: calculator
+        expression: "sum(audit_scores[*].score * audit_scores[*].weight)"
+        format: "0.00"
+        label: "Composite score"
+
+      - id: qualification_verdict
+        type: field
+        strategy: classifier
+        input: composite_score
+        rules:
+          - { condition: "composite_score >= 4.0", output: "Approved" }
+          - { condition: "composite_score >= 3.0", output: "Conditional" }
+          - { condition: "composite_score < 3.0",  output: "Rejected" }
+
+      - id: scorecard_summary
+        type: narrative
+        strategy: narrative_llm
+        prompt: |
+          Write a 2–3 sentence scorecard summary paragraph.
+          Composite score: {{composite_score}} / 5.00
+          Verdict: {{qualification_verdict}}
+          Lowest-scoring criterion: {{min(audit_scores, by=weighted_score).criterion}}
+          at score {{min(audit_scores, by=weighted_score).score}}/5.
+          Style: factual, third-person, professional procurement language.
+          Do not repeat the verdict word verbatim in the first sentence.
+        exemplars:
+          - "The supplier achieved a composite score of X.XX, demonstrating [strength areas].
+             The primary area for improvement is [lowest criterion], which [brief reason].
+             [Verdict sentence]."
+        max_tokens: 120
+
+  - id: performance
+    title: "Delivery & Quality Performance"
+    order: 3
+    content:
+
+      - id: performance_table
+        type: table
+        strategy: extractor
+        fields:
+          - otd_rate_pct
+          - defect_rate_pct
+          - invoice_accuracy_pct
+          - open_ncr_count
+          - ncr_avg_close_days
+        computed_columns:
+          - name: sla_status
+            strategy: calculator
+            per_field_thresholds:
+              otd_rate_pct:         { pass: ">=90",   watch: ">=85",  breach: "<85"  }
+              defect_rate_pct:      { pass: "<=1.5",  watch: "<=3.0", breach: ">3.0" }
+              invoice_accuracy_pct: { pass: ">=95",   watch: ">=90",  breach: "<90"  }
+              open_ncr_count:       { pass: "<=2",    watch: "<=4",   breach: ">4"   }
+              ncr_avg_close_days:   { pass: "<=14",   watch: "<=21",  breach: ">21"  }
+
+      - id: performance_narrative
+        type: narrative
+        strategy: narrative_llm
+        prompt: |
+          Write a 2–3 sentence performance narrative.
+          OTD: {{otd_rate_pct}}% (target ≥90%, status: {{otd_sla_status}})
+          Defect rate: {{defect_rate_pct}}% (target ≤1.5%)
+          Invoice accuracy: {{invoice_accuracy_pct}}%
+          Open NCRs: {{open_ncr_count}} (target ≤2)
+          NCR avg close: {{ncr_avg_close_days}} days (target ≤14)
+          Lead with the most significant breach or concern.
+          If all metrics pass, note overall satisfactory performance.
+          Style: factual, third-person.
+        max_tokens: 150
+
+  - id: risk_assessment
+    title: "Risk Assessment"
+    order: 4
+    content:
+
+      - id: risk_register_table
+        type: table
+        strategy: extractor
+        source: risk_register
+        computed_columns:
+          - { name: priority_score, expression: "likelihood * impact",
+              label: "Priority score" }
+
+      - id: overall_risk_tier
+        type: field
+        strategy: classifier
+        input: "max(risk_register[*].priority_score)"
+        rules:
+          - { condition: "max_priority >= 15", output: "High" }
+          - { condition: "max_priority >= 8",  output: "Medium" }
+          - { condition: "max_priority < 8",   output: "Low" }
+
+      - id: risk_narrative
+        type: narrative
+        strategy: narrative_llm
+        prompt: |
+          Write a 2–3 sentence risk narrative.
+          Overall risk tier: {{overall_risk_tier}}
+          Top 2 risks by priority score:
+          1. {{risk_register[0].risk_item}} — priority {{risk_register[0].priority_score}}
+             Mitigation: {{risk_register[0].mitigation}}
+          2. {{risk_register[1].risk_item}} — priority {{risk_register[1].priority_score}}
+             Mitigation: {{risk_register[1].mitigation}}
+          Name the risks explicitly. Describe the mitigation approach concisely.
+          Style: factual, risk-management register language.
+        max_tokens: 150
+
+      - id: risk_disclosure
+        type: narrative
+        strategy: lookup
+        source: risk_disclosure_clause
+
+  - id: corrective_actions
+    title: "Corrective Actions & Conditions"
+    order: 5
+    content:
+
+      - id: approval_conditions
+        type: narrative
+        strategy: classifier
+        input: qualification_verdict
+        source: "approval_conditions_blocks[qualification_verdict]"
+        condition: "qualification_verdict != 'Approved'"
+
+      - id: car_table
+        type: table
+        strategy: extractor
+        source: corrective_actions
+
+      - id: car_summary
+        type: narrative
+        strategy: narrative_llm
+        prompt: |
+          Write a 2–3 sentence CAR summary paragraph.
+          Open CAR count: {{count(corrective_actions, status='Open')}}
+          Total CARs: {{count(corrective_actions)}}
+          Earliest due date: {{min(corrective_actions[*].due_date)}}
+          If verdict is Conditional, name the conditions that are CAR-gated.
+          Verdict: {{qualification_verdict}}
+        max_tokens: 130
+        condition: "count(corrective_actions) > 0"
+
+      - id: car_followup
+        type: narrative
+        strategy: lookup
+        source: car_followup_clause
+
+  - id: summary
+    title: "Summary & Recommendation"
+    order: 6
+    content:
+
+      - id: executive_summary
+        type: narrative
+        strategy: narrative_llm
+        prompt: |
+          Write a 2–3 sentence executive summary.
+          Supplier: {{intake.supplier_name}}
+          Commodity: {{intake.commodity_category}}
+          Composite score: {{composite_score}} / 5.00
+          Verdict: {{qualification_verdict}}
+          Overall risk tier: {{overall_risk_tier}}
+          Top risk: {{risk_register[0].risk_item}}
+          State the verdict clearly in the first sentence.
+        max_tokens: 140
+
+      - id: recommendation
+        type: narrative
+        strategy: narrative_llm
+        prompt: |
+          Write a 2–3 sentence procurement recommendation.
+          Verdict: {{qualification_verdict}}
+          Open CARs: {{count(corrective_actions, status='Open')}}
+          Conditions (if any): {{approval_conditions_blocks[qualification_verdict]}}
+          Overall risk tier: {{overall_risk_tier}}
+          Give a concrete recommended action (maintain, escalate, initiate secondary
+          source, place on restricted list, etc.).
+        max_tokens: 140
+
+      - id: next_review_date
+        type: field
+        strategy: calculator
+        expression: |
+          qualification_verdict == 'Approved'    ? today + 12_months :
+          qualification_verdict == 'Conditional' ? today + 6_months  :
+                                                   today + 3_months
+
+      - id: signatory_block
+        type: narrative
+        strategy: lookup
+        source: signatory_block
+
+# ── Lookup dictionaries ────────────────────────────────────────────────────────
+lookup_sources:
+
+  qualification_scope_statements:
+    "Precision machined components": >
+      This qualification covers the supplier as a source of precision machined
+      components for use in capital equipment and sub-assembly applications.
+      Assessment conducted per internal procedure SQP-003.
+    "Electronic assemblies": >
+      This qualification covers the supplier as a source of electronic assemblies
+      including PCBAs and cable harnesses. Assessment conducted per SQP-004.
+    "Raw materials — metals": >
+      This qualification covers the supplier as a source of metallic raw materials
+      including bar stock, sheet, and castings. Assessment conducted per SQP-005.
+    "Raw materials — polymers": >
+      This qualification covers the supplier as a source of polymeric raw materials
+      including moulding compounds and sheet goods. Assessment conducted per SQP-006.
+    "Packaging materials": >
+      This qualification covers the supplier as a source of primary and secondary
+      packaging materials. Assessment conducted per SQP-007.
+    "Logistics services": >
+      This qualification covers the supplier as a provider of freight and logistics
+      services including inbound and outbound transportation. Assessment conducted
+      per SQP-008.
+    "Software & IT services": >
+      This qualification covers the supplier as a provider of software and IT
+      services. Assessment conducted per SQP-009.
+
+  approval_conditions_blocks:
+    "Conditional": >
+      Conditional approval is granted subject to resolution of all open CARs
+      within the specified due dates. Failure to close CARs by the stated
+      deadlines will result in downgrade to Restricted supplier status.
+    "Rejected": >
+      This supplier does not currently meet qualification criteria. No new purchase
+      orders may be raised. Existing orders must be reviewed with the Procurement
+      Lead. Re-qualification may be initiated after a minimum 90-day remediation
+      period with documented evidence of corrective action.
+
+  risk_disclosure_clause: >
+    Risk assessment conducted in accordance with ISO 31000 principles. Scores
+    reflect evaluator judgment at time of assessment and are subject to revision
+    at subsequent review periods.
+
+  car_followup_clause: >
+    CAR progress will be reviewed at the next scheduled supplier business review.
+    Overdue CARs will trigger an escalation to the Procurement Lead and may result
+    in a change of supplier status.
+
+  signatory_block: >
+    Prepared by: {{evaluator_name}} · {{issue_date}}
+    Template: supplier-qualification-report v{{template.version}}
+    This report was generated by Provenance. All narrative sections are
+    subject to evaluator review and approval before this document is considered
+    final. Generated report ID: {{report_id}}.
+
+# ── Validation rules ───────────────────────────────────────────────────────────
+validation_rules:
+
+  - id: score_weights_sum
+    description: "Audit score weights must sum to 1.0"
+    check: "sum(audit_scores[*].weight) == 1.0"
+    severity: error
+
+  - id: verdict_car_consistency
+    description: "Conditional/Rejected verdict should have at least one CAR"
+    check: "qualification_verdict == 'Approved' OR count(corrective_actions) >= 1"
+    severity: warning
+    message: "Verdict is {{qualification_verdict}} but no CARs have been entered.
+              Consider adding corrective actions."
+
+  - id: high_risk_car_coverage
+    description: "Each High-priority risk should have a corresponding CAR"
+    check: "for each risk where priority_score >= 15,
+            exists corrective_action where action_item contains risk.risk_item"
+    severity: warning
+    message: "High-priority risk '{{risk_item}}' has no corresponding CAR."
+
+  - id: performance_verdict_alignment
+    description: "Breach-level performance should not yield Approved verdict"
+    check: "NOT (count(sla_breach_flags) >= 2 AND qualification_verdict == 'Approved')"
+    severity: warning
+    message: "Two or more SLA breaches present but verdict is Approved.
+              Verify scorecard scores reflect performance data."
