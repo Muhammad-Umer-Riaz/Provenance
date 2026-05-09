@@ -5,6 +5,8 @@ import { LoginPage } from '@/pages/LoginPage'
 import { SignupPage } from '@/pages/SignupPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { TemplatesPage } from '@/pages/TemplatesPage'
+import { ReportsPage } from '@/pages/ReportsPage'
+import { NewReportPage } from '@/pages/NewReportPage'
 
 function App() {
   return (
@@ -19,6 +21,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <TemplatesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <ReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/new"
+            element={
+              <ProtectedRoute>
+                <NewReportPage />
               </ProtectedRoute>
             }
           />

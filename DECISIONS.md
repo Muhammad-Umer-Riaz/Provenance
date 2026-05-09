@@ -276,6 +276,24 @@ Inline expressions inside prompt strings require the template engine to parse an
 
 ---
 
+## 21. Risk Register: Structured Category Column + Free-Text Description
+
+**Options considered:** Single free-text `risk_item` field for the full risk description; dropdown of categories only (no description field); separate `risk_category` enum column plus `risk_item` free-text description column
+
+**Chosen:** `risk_category` enum (11 standard supply chain categories + "Other") as the first column, followed by a free-text `risk_item` description column
+
+**Why:**
+
+A purely free-text `risk_item` gives the narrative_llm no structural signal about the type of exposure — "only one supplier for valves" and "currency exposure on USD invoices" are both strings with no shared vocabulary. With `risk_category`, the LLM receives `[Single-source dependency]: only one certified supplier for valve assembly` in the prompt, allowing it to frame the risk type explicitly ("a single-source dependency risk that...") without guessing from prose. The category also enables downstream analytics in Module 7 eval and future trend reports: risk type distribution across evaluations becomes queryable at SQL level. Free text alone cannot support that aggregation.
+
+**Why not category-only:** Risk categories are too broad for a meaningful narrative or CAR reference. The evaluator must be able to describe the specific instance ("only one approved supplier" vs. "supplier has exclusive IP rights"). Both fields are required.
+
+**Trade-off:** The YAML template and frontend both define the 11 category values independently (no single source of truth). Acceptable at v1 scale; a `template.columns[n].values` API read could synchronise them in v2. Also adds a column to the risk register table, making Step 5 wider — mitigated by the table's horizontal scroll wrapper.
+
+The 11 categories: Single-source dependency, Financial instability, Geopolitical / country risk, Quality capability gap, Capacity constraint, Lead time variability, IP / data security, Regulatory / compliance, Currency / FX exposure, Force majeure, Other.
+
+---
+
 ## 20. Rule-Based Classifier When Explicit Threshold Rules Are Provided
 
 **Options considered:** Always call LLM for `classifier` fields (consistent with the strategy name), use rule engine when `rules:` are defined in the YAML and LLM only as fallback, always use rule engine (no LLM for any classifier)

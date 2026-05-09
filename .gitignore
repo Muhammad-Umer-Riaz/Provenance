@@ -43,3 +43,9 @@ eval/results/*.json
 
 # Claude Code memory (local only)
 .claude/
+
+# Playwright MCP test artifacts
+.playwright-mcp/
+
+# Validation screenshots
+screen-*.png

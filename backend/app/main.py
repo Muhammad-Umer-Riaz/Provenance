@@ -1,12 +1,16 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.routes import health, reports
+from app.routes import health, reports, templates
 from app.templates.loader import load_templates
+
+logger = logging.getLogger(__name__)
 
 
 def _init_tracing() -> None:
@@ -34,5 +38,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def unhandled_exception_middleware(request: Request, call_next) -> JSONResponse:
+    import traceback
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"{type(exc).__name__}: {exc}"},
+        )
+
 app.include_router(health.router)
 app.include_router(reports.router)
+app.include_router(templates.router)

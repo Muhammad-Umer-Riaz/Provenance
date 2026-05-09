@@ -1,8 +1,132 @@
-from fastapi import APIRouter
+from typing import Any
+
+from fastapi import APIRouter, Depends, Header, HTTPException, status
+from pydantic import BaseModel
+
+from app.database import supabase
+from app.templates.loader import get_loaded_templates
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 
-@router.get("/")
-async def list_reports():
-    return {"reports": []}
+# ── Pydantic models ────────────────────────────────────────────────────────────
+
+class ReportCreate(BaseModel):
+    template_id: str       # text identifier, e.g. "supplier-qualification-report"
+    template_version: str
+    intake_data: dict[str, Any]
+
+
+class ReportResponse(BaseModel):
+    id: str
+    template_id: str       # text identifier returned to frontend
+    template_version: str
+    status: str
+    intake_data: dict[str, Any]
+    created_at: str
+
+
+# ── Auth dependency ────────────────────────────────────────────────────────────
+
+async def get_current_user_id(authorization: str = Header(...)) -> str:
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+    token = authorization.removeprefix("Bearer ")
+    try:
+        response = supabase.auth.get_user(token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    if response.user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return response.user.id
+
+
+def _lookup_template_uuid(template_text_id: str, version: str) -> str:
+    result = (
+        supabase.table("templates")
+        .select("id")
+        .eq("template_id", template_text_id)
+        .eq("version", version)
+        .single()
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Template '{template_text_id}' v{version} not found in database",
+        )
+    return result.data["id"]
+
+
+# ── Endpoints ──────────────────────────────────────────────────────────────────
+
+@router.get("/", response_model=dict)
+async def list_reports(user_id: str = Depends(get_current_user_id)):
+    # Join with templates to return the text template_id, not the UUID
+    result = (
+        supabase.table("reports")
+        .select("id, template_version, status, intake_data, created_at, template:templates(template_id)")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    rows = []
+    for row in (result.data or []):
+        rows.append({
+            "id": row["id"],
+            "template_id": row["template"]["template_id"] if row.get("template") else "",
+            "template_version": row["template_version"],
+            "status": row["status"],
+            "intake_data": row["intake_data"],
+            "created_at": row["created_at"],
+        })
+    return {"reports": rows}
+
+
+@router.post("/", status_code=status.HTTP_201_CREATED)
+async def create_report(
+    body: ReportCreate,
+    user_id: str = Depends(get_current_user_id),
+):
+    try:
+        # Validate against loaded templates
+        loaded = {t.template.id: t.template.version for t in get_loaded_templates()}
+        if body.template_id not in loaded or loaded[body.template_id] != body.template_version:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Template '{body.template_id}' v{body.template_version} not loaded",
+            )
+
+        # Resolve UUID FK for the reports table
+        template_uuid = _lookup_template_uuid(body.template_id, body.template_version)
+
+        result = (
+            supabase.table("reports")
+            .insert(
+                {
+                    "user_id": user_id,
+                    "template_id": template_uuid,
+                    "template_version": body.template_version,
+                    "status": "draft",
+                    "intake_data": body.intake_data,
+                }
+            )
+            .execute()
+        )
+        row = result.data[0]
+        return {
+            "id": row["id"],
+            "template_id": body.template_id,
+            "template_version": row["template_version"],
+            "status": row["status"],
+            "intake_data": row["intake_data"],
+            "created_at": row["created_at"],
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        import traceback
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}",
+        ) from exc

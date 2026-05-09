@@ -206,7 +206,23 @@ intake:
     label: "Risk register — add all identified risks"
     min_rows: 1
     columns:
-      - { name: risk_item,   label: "Risk item",        type: string,  required: true }
+      - name: risk_category
+        label: "Category"
+        type: enum
+        required: true
+        values:
+          - "Single-source dependency"
+          - "Financial instability"
+          - "Geopolitical / country risk"
+          - "Quality capability gap"
+          - "Capacity constraint"
+          - "Lead time variability"
+          - "IP / data security"
+          - "Regulatory / compliance"
+          - "Currency / FX exposure"
+          - "Force majeure"
+          - "Other"
+      - { name: risk_item,   label: "Description",      type: string,  required: true }
       - { name: likelihood,  label: "Likelihood (1–5)", type: integer,
           validation: { min: 1, max: 5 } }
       - { name: impact,      label: "Impact (1–5)",     type: integer,
@@ -482,6 +498,11 @@ sections:
         strategy: calculator
         expression: "risk_register[1].risk_item if len(risk_register) > 1 else 'No additional risks identified'"
 
+      - id: second_risk_category
+        type: field
+        strategy: calculator
+        expression: "risk_register[1].risk_category if len(risk_register) > 1 else ''"
+
       - id: second_risk_priority
         type: field
         strategy: calculator
@@ -499,12 +520,13 @@ sections:
           Write a 2–3 sentence risk narrative.
           Overall risk tier: {{overall_risk_tier}}
           Top risks by priority score (sorted highest first):
-          1. {{risk_register[0].risk_item}} — priority {{risk_register[0].priority_score}}
+          1. [{{risk_register[0].risk_category}}] {{risk_register[0].risk_item}} — priority {{risk_register[0].priority_score}}
              Mitigation: {{risk_register[0].mitigation}}
-          2. {{second_risk_item}} — priority {{second_risk_priority}}
+          2. [{{second_risk_category}}] {{second_risk_item}} — priority {{second_risk_priority}}
              Mitigation: {{second_risk_mitigation}}
-          If Risk 2 is "No additional risks identified", discuss only Risk 1.
-          Name the risks explicitly. Describe the mitigation approach concisely.
+          If Risk 2 is "No additional risks identified" or its category is blank, discuss only Risk 1.
+          Lead with the risk category to frame the type of exposure (e.g. "a single-source dependency risk",
+          "a geopolitical risk"). Then name the specific risk description and state the mitigation approach.
           Style: factual, risk-management register language.
         max_tokens: 150
 
@@ -590,7 +612,7 @@ sections:
           Previous verdict: {{previous_verdict}} (omit if blank)
           Previous composite score: {{previous_composite_score}} (omit if blank)
           Overall risk tier: {{overall_risk_tier}}
-          Top risk: {{risk_register[0].risk_item}}
+          Top risk: [{{risk_register[0].risk_category}}] {{risk_register[0].risk_item}}
           SLA breaches: {{breach_count}} metric(s) in Breach status
           State the verdict clearly in the first sentence.
           If breach_count > 0, note that performance data shows active SLA breaches.
