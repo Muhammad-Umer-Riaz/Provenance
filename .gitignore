@@ -49,3 +49,6 @@ eval/results/*.json
 
 # Validation screenshots
 screen-*.png
+
+# UI design assets (local reference only)
+UI Designs from Claude Code/

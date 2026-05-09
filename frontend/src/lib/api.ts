@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { ReportCreateRequest, ReportResponse, TemplateListItem } from '@/types/template'
+import type { ReportCreateRequest, ReportUpdateRequest, ReportResponse, TemplateListItem } from '@/types/template'
 
 const BASE = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:8000'
 
@@ -17,6 +17,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     const body = await res.text()
     throw new Error(`API ${res.status}: ${body}`)
+  }
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return undefined as T
   }
   return res.json() as Promise<T>
 }
@@ -36,4 +39,15 @@ export async function createReport(body: ReportCreateRequest): Promise<ReportRes
 export async function getReports(): Promise<ReportResponse[]> {
   const data = await apiFetch<{ reports: ReportResponse[] }>('/api/reports/')
   return data.reports
+}
+
+export async function patchReport(id: string, body: ReportUpdateRequest): Promise<ReportResponse> {
+  return apiFetch<ReportResponse>(`/api/reports/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+}
+
+export async function deleteReport(id: string): Promise<void> {
+  await apiFetch<void>(`/api/reports/${id}`, { method: 'DELETE' })
 }

@@ -38,6 +38,8 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ## Module 3: Intake Form UI
 
+### 3.0 — Core intake wizard (original)
+
 - [x] Build field type → component mapping (string, number, integer, date, enum, multi_enum, table)
 - [x] Implement auto-rendered intake form from YAML `intake:` schema
 - [x] Set up react-hook-form + zod with validation schemas derived from YAML definitions
@@ -50,18 +52,73 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 - [x] Build `/reports/new` route and page
 - [x] Build `/reports` list page (supplier, template, status badge, created date)
 - [x] Validation fully confirmed: end-to-end form → POST → Supabase → /reports list working (9 May 2026)
-- [-] Delete report from `/reports` list — not yet started
-- [-] Additional Module 3 polish (TBD)
 
-**Bugs fixed during validation:**
-- Enum fields showed raw zod type error instead of "Required" (`buildIntakeSchema.ts`)
-- Table cell inputs lost focus after one character — root cause: `flexRender` wrapped changing closure references in `React.createElement`, causing unmount/remount on every keystroke. Fixed by calling cell render functions directly instead of through `flexRender`
-- Number inputs (Weight, Score, Likelihood, Impact) couldn't enter decimals and had broken spinners — switched to `type="text"` with `inputMode` + input sanitisation
-- Date inputs had browser native yyyy=0002 issue — switched to `type="text"` with `YYYY-MM-DD` placeholder
-- Commodity category dropdown text clipped — fixed `SelectTrigger` `w-fit` → `w-full` and `SelectContent` width constraint
-- Submit blocked silently when audit scores empty — added navigation to failing step with error message
-- Backend returning Starlette plain-text 500 for POST (Starlette 0.41 exception handler regression) — replaced `@app.exception_handler(Exception)` with `@app.middleware("http")` wrapper
-- Port 8000 permanently broken from session state — switched backend to port 8080, updated `frontend/.env`
+### 3.1 — UI overhaul (design implementation)
+
+**Backend additions:**
+- [x] `PATCH /api/reports/{id}` — autosave endpoint; accepts partial `intake_data` update and optional status transition to `generating`
+- [x] `DELETE /api/reports/{id}` — ownership-verified delete endpoint
+- [x] `GET /api/templates/` extended — now returns `strategy_counts`, `section_count`, `field_count` per template (computed from loaded YAML sections)
+- [x] `GET /api/reports/` extended — now returns `updated_at`, `score: null`, `verdict: null` per report; orders by `updated_at` desc
+- [x] `POST /api/reports/` response extended — now includes `updated_at`, `score`, `verdict`
+
+**Intake wizard redesign:**
+- [x] Layout split into main form (flex-1) + right sidebar (w-64) — sidebar always visible
+- [x] `IntakeSidebar` component: three stacked panels — THIS STEP (contextual description), PROGRESS (live per-step X/Y field counts), DOWNSTREAM (what this step feeds)
+- [x] `FieldGroup` component: `§ 01 / § 02 / § 03` section grouping with tag badges within each step
+- [x] Field label redesign: label + `req`/`opt` monospace badge + field ID hint right-aligned — applied to StringField, NumberField, IntegerField, EnumField
+- [x] Breadcrumb above step bar: `reports › new › {template_id} › {supplier_name} · draft` — supplier name updates live as user types
+- [x] Step progress bar redesigned — numbered circles connected by horizontal lines; completed steps show checkmark; current step filled
+- [x] Bottom status bar: `← Back` | contextual status message | `Next: {StepName} →`
+- [x] Step-specific status messages: steps 1–3 show "X of Y required filled"; step 4 shows score count + weight sum; step 5 shows risk/CAR count + submit readiness
+- [x] `AutosaveIndicator` component: `● autosaved · Xs ago` / `● saving...` with 10s refresh interval
+- [x] Step 2 qualification type: replaced EnumField dropdown with three radio-card layout (Initial / Re-qualification / For-cause), each with subtitle
+- [x] Step 2 conditional section: info callout box explaining n/a handling
+- [x] Step 4 audit scorecard: replaced editable table with inline `ScoreButtons` (1–5 button row per criterion) + weight editable + footer showing ∑ weights and live preview score
+- [x] Step 5 risk cards: `RISK_REGISTER[n]` header tag + `HIGH/MEDIUM/LOW · PRIORITY N` badge (auto-calculated from likelihood × impact); X button to remove
+- [x] Submit button: green "Submit report →" on step 5; PATCHes existing draft with `status: generating` instead of creating a new POST
+
+**Draft management — localStorage + lazy backend:**
+- [x] Removed on-mount draft creation (was creating phantom empty records on every wizard open)
+- [x] Backend draft created lazily: only when user clicks "Next" on step 1 (after validation passes)
+- [x] Form state persisted to `localStorage` at key `draft:{template_id}` on every field change — survives browser refresh
+- [x] Draft ID stored alongside form state in localStorage; restored on wizard re-open so same backend record is reused
+- [x] Edit mode: wizard accepts `editReport: { id, intake_data }` via navigation state; skips localStorage entirely; pre-populates form from existing report data; breadcrumb badge shows "editing"
+- [x] On submit: localStorage cleared for that template slot
+
+**Templates page redesign:**
+- [x] Greeting header: "GOOD MORNING/AFTERNOON/EVENING, {FIRSTNAME}" + "Start a report" heading
+- [x] `Jump to ⌘K` button opening `CommandPalette` stub overlay (Ctrl+K / Cmd+K global shortcut; closes on Escape)
+- [x] Featured SQR card: template ID + version + PRODUCTION badge; description; "WHAT YOU'LL DO" label with direct/review/auto counts
+- [x] `StrategyBar` component: proportional colour bar + plain-English legend bucketed into "You fill in" / "Auto-generated" / "AI writes" (replaces technical strategy name labels)
+- [x] START FRESH panel: "Begin new SQR" button + "Continue draft · {supplier_name}" link (reads from localStorage, not backend — no API call)
+- [x] YOUR RECENT panel: last 3 non-draft reports with status dot + relative time
+- [x] OTHER TEMPLATES section: 2 hardcoded SKELETON cards (NCR Non-Conformance Report, SAT Site Acceptance Test) with disabled Begin buttons
+- [x] Footer: strategy count + schema version + "request a new template →"
+
+**Reports page redesign:**
+- [x] Full layout: left `FilterSidebar` (w-48) + main content (flex-1)
+- [x] `FilterSidebar`: Status filters (All/Draft/Generating/In review/Approved/Exported with counts), Template section (SQR), Evaluator section (derived from `intake_data.evaluator_name`, deduplicated with counts)
+- [x] Table columns: ID (`rpt_xxxxxxx` short ref) | SUBJECT (supplier bold + evaluator + country/category) | TPL badge | SCORE (`—` until Module 4) | VERDICT (`—` until Module 4) | STATUS (styled badge) | UPDATED (relative time) | ACTIONS
+- [x] Client-side search by supplier name or ref ID
+- [x] Pencil (edit) icon: navigates to wizard in edit mode with report's intake_data pre-loaded
+- [x] Trash (delete) icon: confirmation dialog → DELETE API → optimistic row removal
+- [x] `apiFetch` fixed to handle HTTP 204 No Content (DELETE was silently failing because `res.json()` threw on empty body)
+
+**Polish:**
+- [x] App name: "provenance" → "Provenance" across all nav bars
+- [x] "sign out" → "Sign out" across all nav bars
+- [x] "jump to" → "Jump to" on Templates page
+- [x] Warm cream background (`oklch(0.977 0.007 80)`) replacing pure white
+- [x] Global h1/h2 CSS moved out of unlayered scope (removed 56px h1 size and broken `--text-h` colour that rendered invisible in OS dark mode); Tailwind utilities now control heading sizes and `--foreground` controls colour
+- [x] `text-align: center` on `#root` corrected to `left`
+- [x] Filter sidebar section labels (Status, Template, Evaluator) made muted-weight instead of bold
+
+**Bugs fixed during 3.1:**
+- Draft explosion: on-mount `POST /api/reports/` ran on every wizard open → dozens of empty draft rows. Fixed by lazy creation on step-1 Next click.
+- Ghost h1/h2 text: global CSS set `color: var(--text-h)` which resolves to `#f3f4f6` (near white) when OS prefers dark mode, making headings invisible against light background. Fixed by removing `--text-h` reference entirely.
+- Delete row not disappearing: DELETE returns 204 No Content; `apiFetch` called `res.json()` on the empty body → threw → catch block suppressed it → `setReports` filter never ran. Fixed by checking `res.status === 204` before calling `.json()`.
+- Backend uvicorn command: `uvicorn main:app` fails because entry point is `app/main.py`; correct command is `uvicorn app.main:app --port 8080 --reload`.
 
 ---
 

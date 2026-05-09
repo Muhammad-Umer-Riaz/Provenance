@@ -24,6 +24,14 @@ class ReportResponse(BaseModel):
     status: str
     intake_data: dict[str, Any]
     created_at: str
+    updated_at: str
+    score: float | None = None
+    verdict: str | None = None
+
+
+class ReportUpdate(BaseModel):
+    intake_data: dict[str, Any]
+    status: str | None = None
 
 
 # ── Auth dependency ────────────────────────────────────────────────────────────
@@ -65,9 +73,9 @@ async def list_reports(user_id: str = Depends(get_current_user_id)):
     # Join with templates to return the text template_id, not the UUID
     result = (
         supabase.table("reports")
-        .select("id, template_version, status, intake_data, created_at, template:templates(template_id)")
+        .select("id, template_version, status, intake_data, created_at, updated_at, template:templates(template_id)")
         .eq("user_id", user_id)
-        .order("created_at", desc=True)
+        .order("updated_at", desc=True)
         .execute()
     )
     rows = []
@@ -79,6 +87,9 @@ async def list_reports(user_id: str = Depends(get_current_user_id)):
             "status": row["status"],
             "intake_data": row["intake_data"],
             "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "score": None,
+            "verdict": None,
         })
     return {"reports": rows}
 
@@ -121,6 +132,9 @@ async def create_report(
             "status": row["status"],
             "intake_data": row["intake_data"],
             "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "score": None,
+            "verdict": None,
         }
     except HTTPException:
         raise
@@ -130,3 +144,69 @@ async def create_report(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}",
         ) from exc
+
+
+@router.patch("/{report_id}", response_model=dict)
+async def update_report(
+    report_id: str,
+    body: ReportUpdate,
+    user_id: str = Depends(get_current_user_id),
+):
+    check = (
+        supabase.table("reports")
+        .select("id, status")
+        .eq("id", report_id)
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
+    if not check.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+
+    patch: dict[str, Any] = {"intake_data": body.intake_data}
+    if body.status == "generating":
+        patch["status"] = "generating"
+
+    result = (
+        supabase.table("reports")
+        .update(patch)
+        .eq("id", report_id)
+        .execute()
+    )
+    row = result.data[0]
+    tpl = (
+        supabase.table("templates")
+        .select("template_id")
+        .eq("id", row["template_id"])
+        .single()
+        .execute()
+    )
+    return {
+        "id": row["id"],
+        "template_id": tpl.data["template_id"],
+        "template_version": row["template_version"],
+        "status": row["status"],
+        "intake_data": row["intake_data"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+        "score": None,
+        "verdict": None,
+    }
+
+
+@router.delete("/{report_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_report(
+    report_id: str,
+    user_id: str = Depends(get_current_user_id),
+):
+    check = (
+        supabase.table("reports")
+        .select("id")
+        .eq("id", report_id)
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
+    if not check.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    supabase.table("reports").delete().eq("id", report_id).execute()

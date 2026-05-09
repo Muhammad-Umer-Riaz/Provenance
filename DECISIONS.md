@@ -305,3 +305,57 @@ The 11 categories: Single-source dependency, Financial instability, Geopolitical
 Both SQR classifiers (`qualification_verdict`, `overall_risk_tier`) define explicit threshold rules in the YAML. These are deterministic mappings — a composite score of 3.8 always produces "Conditional" given the defined thresholds. Calling an LLM for a deterministic mapping introduces non-determinism, latency, and cost with no quality benefit. The `classifier` strategy handler inspects the field definition at runtime: if `rules:` is present, it evaluates them in order and returns the first match; if absent, it delegates to the LLM with a constrained output schema. This preserves the strategy's flexibility for templates that genuinely need classification (e.g. categorising free-text input into an enum) while keeping the SQR template fully deterministic for its classification fields.
 
 **Trade-off:** The strategy handler has two code paths. The rule evaluator must handle the same expression syntax as `calculator.py` for condition strings. Reusing the calculator's expression engine for rule conditions avoids duplicating the evaluator but creates a dependency between two strategy handlers.
+
+---
+
+## 22. Draft Persistence: localStorage + Lazy Backend Creation
+
+**Options considered:** Create backend draft record on wizard mount (eager), create on first "Next" click (lazy), store only in localStorage and never create a backend record until submit
+
+**Chosen:** localStorage persistence for immediate resilience + lazy backend draft creation on first step-1 "Next" click
+
+**Why:**
+
+Eager backend creation (on mount) creates a phantom empty record every time the wizard opens — even on tab switches, accidental navigations, and testing sessions. After moderate use this produces dozens of empty `draft` rows that pollute the Reports list. Lazy creation defers the backend write until the user has passed step-1 validation, meaning a report record is only created when real data exists.
+
+localStorage persistence (`draft:{template_id}` key storing `{ id, intake_data }`) gives instant form resilience: a browser refresh mid-wizard restores the form without a round-trip. The draft ID is stored alongside the form data so the same backend record is reused on return — one record per template slot per browser profile, not one per wizard open.
+
+On submit, localStorage is cleared for that template slot. On edit (opening an existing report from the Reports list), localStorage is bypassed entirely — edit mode reads from the report's server-side `intake_data` and writes directly to its existing ID.
+
+**Trade-off:** If a user clears their localStorage they lose in-progress form data for any draft that has not yet completed step 1 (no backend record exists yet). Post-step-1 drafts survive because the backend record is the source of truth once the ID is established. A hybrid approach (POST on step 1, localStorage as cache) is the chosen design.
+
+---
+
+## 23. Strategy Bar Labels: Plain-English Buckets over Technical Names
+
+**Options considered:** Show technical strategy names in legend (template_fill, extractor, narrative_llm, etc.), show human-readable per-strategy labels (Template text, Carry-through, AI narrative, etc.), bucket into three plain-English categories
+
+**Chosen:** Three plain-English buckets — "You fill in" / "Auto-generated" / "AI writes"
+
+**Why:**
+
+The Templates page is the first thing a user sees before starting a report. Technical strategy names (`template_fill`, `extractor`, `classifier`) are implementation vocabulary — they describe the engine's routing, not the engineer's experience. The engineer cares about one question: "How much work is this form?" The three-bucket model answers that directly:
+
+- "You fill in" (direct_input + extractor) = fields requiring engineer input
+- "Auto-generated" (lookup + calculator + template_fill + classifier) = deterministic, no engineer effort
+- "AI writes" (narrative_llm + grounded_llm + hybrid) = LLM-drafted prose, reviewed in Module 5
+
+The proportional colour bar is preserved because the ratio conveys at a glance that most of the report is auto-generated (useful for setting expectations). Only the legend labels change from technical to user-facing.
+
+**Trade-off:** Bucketing loses the granularity distinguishing `lookup` from `calculator` from `template_fill` — all map to "Auto-generated." For a power user or template author, this is less informative. The technical breakdown remains accessible via the YAML template file for anyone who needs it; the Templates page is not the right surface for engine internals.
+
+---
+
+## 24. Report Edit Flow: Navigation State over URL Parameters
+
+**Options considered:** `/reports/:id/edit` dedicated route, navigate to `/reports/new` with report data in `location.state`, open an edit modal on the Reports list page
+
+**Chosen:** Navigate to `/reports/new` with `editReport: { id, intake_data }` in `location.state`
+
+**Why:**
+
+The intake wizard is the correct editing surface — it already knows how to render all five steps, validate all fields, and PATCH the backend. Creating a dedicated `/reports/:id/edit` route would duplicate the wizard rendering with a slightly different data-loading pattern. Passing the report data via `location.state` reuses the entire wizard component with a single `isEditMode` flag controlling three behaviours: skip localStorage read, set `draftIdRef` to the existing report ID immediately, and display "editing" instead of "draft" in the breadcrumb badge.
+
+The edit session autosaves to the existing backend record (not a new one) via the existing PATCH endpoint. On submit, the report's `intake_data` is updated and status transitions to `generating` — identical to the new-draft submit path.
+
+**Trade-off:** If the user navigates away from the edit view using the browser back button, `location.state` is lost and the session cannot be resumed (unlike new drafts which have localStorage). This is acceptable — edits to an already-created report are short sessions, not multi-day drafts.

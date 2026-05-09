@@ -1,3 +1,5 @@
+from collections import Counter
+
 from fastapi import APIRouter
 
 from app.templates.loader import get_loaded_templates
@@ -20,6 +22,13 @@ async def list_templates():
                     field_id: _serialize_intake_field(schema)
                     for field_id, schema in t.intake.items()
                 },
+                "strategy_counts": dict(Counter(
+                    field.strategy
+                    for section in t.sections
+                    for field in section.content
+                )),
+                "section_count": len(t.sections),
+                "field_count": sum(len(s.content) for s in t.sections),
             }
             for t in templates
         ]
