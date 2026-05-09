@@ -122,15 +122,47 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ---
 
-## Module 4: Generation Pipeline + Audit Log
+## Module 4: Generation Pipeline + Audit Log — [x] COMPLETE
 
-- [ ] Implement POST /reports/:id/generate (async background task)
-- [ ] Build per-field execution loop with isolated failure handling and retry
-- [ ] Implement Supabase Realtime events emitted on each field completion (field_id, status, value preview)
-- [ ] Implement `validator.py` — runs template `validation_rules` post-generation
-- [ ] Implement `audit_log.py` — append-only event recording (field_id, strategy, inputs snapshot, output, timestamp)
-- [ ] Build `/reports/:id/generate` progress UI page (live field-by-field status via Realtime)
-- [ ] Wire Realtime subscription in frontend progress page
+- [x] Implement POST /reports/:id/generate (async background task via FastAPI BackgroundTasks)
+- [x] Build per-field execution loop with isolated failure handling — orchestrator `_process_field_safe` wraps each field; one failure does not abort the report
+- [x] Implement Supabase Realtime events on each field (pending → generating → draft/failed) via Postgres Changes on `report_fields` (REPLICA IDENTITY FULL)
+- [x] Implement `validator.py` — evaluates template `validation_rules` post-generation with simpleeval; results stored as `validation_warnings` JSONB on reports
+- [x] Implement `audit_log.py` — append-only insert per field event (field_id, strategy, inputs_snapshot, output_value, model, timestamp)
+- [x] Build `/reports/:id/generate` progress UI page — section-grouped expandable cards; live status icons; overall progress bar
+- [x] Wire Realtime subscription — field channel (postgres_changes on report_fields) + report channel (status=review triggers auto-redirect to /reports/:id/review)
+- [x] Migration: added score (float4), verdict (text), validation_warnings (jsonb) to reports table
+- [x] GET /api/reports/:id — new endpoint for generate page initial load
+- [x] GET /api/reports/:id/fields — seeds progress page with initial pending rows
+- [x] GET /api/reports/ — now returns real score/verdict from DB (was hardcoded null)
+- [x] Orchestrator: added on_field_start / on_field_complete callbacks to generate(); existing callers unaffected
+- [x] Intake wizard submit: now navigates to /reports/:id/generate instead of /reports
+- [x] Supabase publication: added report_fields and reports to supabase_realtime publication (required for Postgres Changes)
+- [x] Intake wizard submit: removed status:'generating' from PATCH (generate endpoint owns status transition)
+- [x] Idempotency fix: POST /generate skips task only if report_fields rows already exist (not just on status='generating')
+- [x] Realtime channel fix: removeExisting() before subscribe to handle React double-mount / stale channels
+- [x] GeneratePage race condition fix: re-fetch after subscribing to catch events fired before subscription was ready; useEffect for redirects (not inside state setters)
+
+**Bugs found during validation (all fixed):**
+- Supabase tables not in realtime publication → Realtime events never fired. Fixed by `ALTER PUBLICATION supabase_realtime ADD TABLE report_fields, reports`.
+- Wizard PATCH set status='generating' before POST /generate → idempotency check blocked task from ever starting. Fixed by removing status from wizard PATCH.
+- `navigate()` called inside React state setter updater → "Cannot update component while rendering" crash. Fixed by moving redirect logic to dedicated useEffect hooks.
+- Race condition: background task could complete between initial fetch and Realtime subscription setup → page stuck at 0/0. Fixed by re-fetching after subscribing and checking fresh report status.
+- Supabase channel reuse error: stale channel from previous render triggered "cannot add postgres_changes callbacks after subscribe()". Fixed by removing existing channel before creating new one.
+
+**Validation results (10 May 2026):**
+- V1 ✓ score/verdict/validation_warnings columns confirmed in DB
+- V2 ✓ audit_log rows inserted per field (36 draft + 11 failed = 47 total)
+- V3 ✓ validator.py produced warnings stored in reports.validation_warnings
+- V4 ✓ 46 backend tests pass after orchestrator changes
+- V5 ✓ POST /generate returns 202; all 47 fields created; reports.status=review; score=3.9; verdict=Conditional
+- V6 ✓ 11 fields failed; remaining 36 continued; report reached review status
+- V7 ✓ POST /generate with existing fields returns early without new task
+- V8 ✓ Realtime streaming confirmed — progress page showed 12/47 live within seconds
+- V9 ✓ Auto-redirect confirmed — page navigated to /reports/:id/review on completion (route stub pending Module 5)
+- V10 ✓ validation_warnings populated with 6 rule results
+- V11 ✓ Reports list shows score=3.9, verdict=CONDITIONAL on completed report
+- V12 ✓ Templates, Reports CRUD, intake wizard all unaffected
 
 ---
 

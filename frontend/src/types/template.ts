@@ -52,4 +52,26 @@ export interface ReportResponse {
   updated_at: string
   score: number | null
   verdict: string | null
+  validation_warnings?: ValidationWarning[]
+}
+
+export interface ValidationWarning {
+  id: string
+  description: string
+  severity: string
+  message: string
+  passed: boolean
+}
+
+export interface ReportField {
+  id: string
+  report_id: string
+  field_id: string
+  section_id: string
+  strategy: string
+  status: 'pending' | 'generating' | 'draft' | 'edited' | 'approved' | 'failed'
+  value: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
 }

@@ -210,7 +210,7 @@ export function ReportsPage() {
           {!loading && !error && filtered.length > 0 && (
             <div className="rounded-lg border overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-[7rem_1fr_4rem_5rem_7rem_7rem_6rem_5rem] border-b bg-muted/50 px-4 py-2">
+              <div className="grid grid-cols-[7rem_minmax(10rem,1fr)_3.5rem_4.5rem_7rem_6.5rem_5.5rem_5rem] border-b bg-muted/50 px-4 py-2 gap-x-2">
                 {['ID', 'SUBJECT', 'TPL', 'SCORE', 'VERDICT', 'STATUS', 'UPDATED', 'ACTIONS'].map(h => (
                   <span key={h} className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                     {h}
@@ -229,7 +229,7 @@ export function ReportsPage() {
                   <div
                     key={r.id}
                     className={cn(
-                      'grid grid-cols-[7rem_1fr_4rem_5rem_7rem_7rem_6rem_5rem] items-center px-4 py-2.5',
+                      'grid grid-cols-[7rem_minmax(10rem,1fr)_3.5rem_4.5rem_7rem_6.5rem_5.5rem_5rem] items-center px-4 py-2.5 gap-x-2',
                       i < filtered.length - 1 && 'border-b',
                       'hover:bg-muted/20',
                     )}
@@ -239,7 +239,7 @@ export function ReportsPage() {
 
                     {/* Subject */}
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{subject.name}</p>
+                      <p className="text-sm font-medium leading-snug">{subject.name}</p>
                       <p className="truncate text-[11px] text-muted-foreground">
                         {subject.evaluator}
                         {subject.country && ` · ${subject.country}`}

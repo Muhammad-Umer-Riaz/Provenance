@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.routes import health, reports, templates
+from app.routes.generation import router as generation_router
 from app.templates.loader import load_templates
 
 logger = logging.getLogger(__name__)
@@ -53,3 +54,4 @@ async def unhandled_exception_middleware(request: Request, call_next) -> JSONRes
 app.include_router(health.router)
 app.include_router(reports.router)
 app.include_router(templates.router)
+app.include_router(generation_router)

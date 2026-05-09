@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { ReportCreateRequest, ReportUpdateRequest, ReportResponse, TemplateListItem } from '@/types/template'
+import type { ReportCreateRequest, ReportUpdateRequest, ReportResponse, ReportField, TemplateListItem } from '@/types/template'
 
 const BASE = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:8000'
 
@@ -50,4 +50,17 @@ export async function patchReport(id: string, body: ReportUpdateRequest): Promis
 
 export async function deleteReport(id: string): Promise<void> {
   await apiFetch<void>(`/api/reports/${id}`, { method: 'DELETE' })
+}
+
+export async function getReport(id: string): Promise<ReportResponse> {
+  return apiFetch<ReportResponse>(`/api/reports/${id}`)
+}
+
+export async function getReportFields(id: string): Promise<ReportField[]> {
+  const data = await apiFetch<{ fields: ReportField[] }>(`/api/reports/${id}/fields`)
+  return data.fields
+}
+
+export async function generateReport(id: string): Promise<{ status: string; report_id: string }> {
+  return apiFetch(`/api/reports/${id}/generate`, { method: 'POST' })
 }

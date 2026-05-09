@@ -27,6 +27,20 @@ class ReportResponse(BaseModel):
     updated_at: str
     score: float | None = None
     verdict: str | None = None
+    validation_warnings: list | None = None
+
+
+class ReportFieldResponse(BaseModel):
+    id: str
+    report_id: str
+    field_id: str
+    section_id: str
+    strategy: str
+    status: str
+    value: str | None = None
+    metadata: dict[str, Any] = {}
+    created_at: str
+    updated_at: str
 
 
 class ReportUpdate(BaseModel):
@@ -73,7 +87,7 @@ async def list_reports(user_id: str = Depends(get_current_user_id)):
     # Join with templates to return the text template_id, not the UUID
     result = (
         supabase.table("reports")
-        .select("id, template_version, status, intake_data, created_at, updated_at, template:templates(template_id)")
+        .select("id, template_version, status, intake_data, created_at, updated_at, score, verdict, template:templates(template_id)")
         .eq("user_id", user_id)
         .order("updated_at", desc=True)
         .execute()
@@ -88,8 +102,8 @@ async def list_reports(user_id: str = Depends(get_current_user_id)):
             "intake_data": row["intake_data"],
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
-            "score": None,
-            "verdict": None,
+            "score": row.get("score"),
+            "verdict": row.get("verdict"),
         })
     return {"reports": rows}
 
@@ -192,6 +206,63 @@ async def update_report(
         "score": None,
         "verdict": None,
     }
+
+
+@router.get("/{report_id}", response_model=dict)
+async def get_report(
+    report_id: str,
+    user_id: str = Depends(get_current_user_id),
+):
+    result = (
+        supabase.table("reports")
+        .select("id, template_version, status, intake_data, created_at, updated_at, score, verdict, validation_warnings, template:templates(template_id)")
+        .eq("id", report_id)
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    row = result.data
+    return {
+        "id": row["id"],
+        "template_id": row["template"]["template_id"] if row.get("template") else "",
+        "template_version": row["template_version"],
+        "status": row["status"],
+        "intake_data": row["intake_data"],
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+        "score": row.get("score"),
+        "verdict": row.get("verdict"),
+        "validation_warnings": row.get("validation_warnings", []),
+    }
+
+
+@router.get("/{report_id}/fields", response_model=dict)
+async def get_report_fields(
+    report_id: str,
+    user_id: str = Depends(get_current_user_id),
+):
+    # Verify ownership via parent report
+    check = (
+        supabase.table("reports")
+        .select("id")
+        .eq("id", report_id)
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
+    if not check.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+
+    result = (
+        supabase.table("report_fields")
+        .select("*")
+        .eq("report_id", report_id)
+        .order("created_at")
+        .execute()
+    )
+    return {"fields": result.data or []}
 
 
 @router.delete("/{report_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from app.config import settings
 from app.strategies.calculator import evaluate_expression, execute_calculator
@@ -23,14 +23,31 @@ class ReportOrchestrator:
         self.context: dict[str, Any] = {}
         self._client: Optional[Any] = None
 
-    async def generate(self) -> dict[str, Any]:
+    async def generate(
+        self,
+        on_field_start: Callable | None = None,
+        on_field_complete: Callable | None = None,
+    ) -> dict[str, Any]:
         """Process all sections in order, all fields within each section in declaration order."""
         for section in sorted(self.template.sections, key=lambda s: s.order):
             for field in section.content:
-                await self._process_field(field)
+                if on_field_start:
+                    await on_field_start(field, section)
+                result, error = await self._process_field_safe(field)
+                if on_field_complete:
+                    await on_field_complete(field, section, result, error)
         return self.context
 
-    async def _process_field(self, field: FieldSchema) -> None:
+    async def _process_field_safe(self, field: FieldSchema) -> tuple[Any, Exception | None]:
+        """Run _process_field with per-field error isolation. Returns (result, error)."""
+        try:
+            result = await self._process_field(field)
+            return result, None
+        except Exception as exc:
+            self.context[field.id] = field.null_value
+            return None, exc
+
+    async def _process_field(self, field: FieldSchema) -> Any:
         # Evaluate condition — skip field if condition is false
         if field.condition is not None:
             try:
@@ -45,7 +62,7 @@ class ReportOrchestrator:
                 cond_result = False
             if not cond_result:
                 self.context[field.id] = field.null_value
-                return
+                return field.null_value
 
         result = await self._dispatch(field)
 
@@ -63,6 +80,8 @@ class ReportOrchestrator:
             and field.computed_columns
         ):
             self.context[field.source] = result
+
+        return result
 
     async def _dispatch(self, field: FieldSchema) -> Any:
         strategy = field.strategy

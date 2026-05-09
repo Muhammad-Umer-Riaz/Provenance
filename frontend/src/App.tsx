@@ -7,6 +7,7 @@ import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { TemplatesPage } from '@/pages/TemplatesPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { NewReportPage } from '@/pages/NewReportPage'
+import { GeneratePage } from '@/pages/GeneratePage'
 
 function App() {
   return (
@@ -37,6 +38,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <NewReportPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/:id/generate"
+            element={
+              <ProtectedRoute>
+                <GeneratePage />
               </ProtectedRoute>
             }
           />

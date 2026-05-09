@@ -308,21 +308,23 @@ export function IntakeWizard({ template, editReport }: Props) {
     setSubmitting(true)
     setSubmitError(null)
     try {
+      let reportId: string
       if (draftIdRef.current) {
         await patchReport(draftIdRef.current, {
           intake_data: getValues() as unknown as Record<string, unknown>,
-          status: 'generating',
         })
+        reportId = draftIdRef.current
       } else {
-        await createReport({
+        const created = await createReport({
           template_id: template.template_id,
           template_version: template.version,
           intake_data: getValues() as unknown as Record<string, unknown>,
         })
+        reportId = created.id
       }
       // Clear localStorage — only relevant for new drafts
       if (!isEditMode) localStorage.removeItem(localKey(template.template_id))
-      navigate('/reports')
+      navigate(`/reports/${reportId}/generate`)
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Submission failed')
     } finally {
