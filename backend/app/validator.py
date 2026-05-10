@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any
 
 from simpleeval import EvalWithCompoundTypes
@@ -6,6 +7,23 @@ from simpleeval import EvalWithCompoundTypes
 from app.templates.schemas import TemplateSchema
 
 logger = logging.getLogger(__name__)
+
+
+def _interpolate_message(message: str | None, context: dict[str, Any]) -> str:
+    """Replace {{key}} placeholders in a message string with values from context."""
+    if not message:
+        return ""
+    evaluator = EvalWithCompoundTypes(names=context)
+
+    def replacer(m: re.Match) -> str:
+        expr = m.group(1).strip()
+        try:
+            val = evaluator.eval(expr)
+            return str(val) if val is not None else "—"
+        except Exception:
+            return "—"
+
+    return re.sub(r"\{\{([^}]+)\}\}", replacer, message)
 
 
 def run_validation_rules(template: TemplateSchema, context: dict[str, Any]) -> list[dict[str, Any]]:
@@ -24,7 +42,7 @@ def run_validation_rules(template: TemplateSchema, context: dict[str, Any]) -> l
             "id": rule.id,
             "description": rule.description,
             "severity": rule.severity,
-            "message": rule.message,
+            "message": _interpolate_message(rule.message, context),
             "passed": passed,
         })
 

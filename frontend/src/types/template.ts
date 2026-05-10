@@ -71,6 +71,8 @@ export interface ReportField {
   strategy: string
   status: 'pending' | 'generating' | 'draft' | 'edited' | 'approved' | 'failed'
   value: string | null
+  original_value: string | null
+  field_index: number
   metadata: Record<string, unknown>
   created_at: string
   updated_at: string

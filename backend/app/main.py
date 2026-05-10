@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.routes import health, reports, templates
 from app.routes.generation import router as generation_router
+from app.routes.fields import router as fields_router
 from app.templates.loader import load_templates
 
 logger = logging.getLogger(__name__)
@@ -55,3 +56,4 @@ app.include_router(health.router)
 app.include_router(reports.router)
 app.include_router(templates.router)
 app.include_router(generation_router)
+app.include_router(fields_router)

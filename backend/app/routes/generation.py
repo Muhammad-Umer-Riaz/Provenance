@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any
 
@@ -82,8 +83,9 @@ async def _run_generation(report_id: str, user_id: str) -> None:
                     "section_id": section.id,
                     "strategy": field.strategy,
                     "status": "pending",
+                    "field_index": idx,
                 }
-                for section, field in all_pairs
+                for idx, (section, field) in enumerate(all_pairs)
             ],
             on_conflict="report_id,field_id",
         ).execute()
@@ -101,7 +103,10 @@ async def _run_generation(report_id: str, user_id: str) -> None:
             error: Exception | None,
         ) -> None:
             field_status = "failed" if error else "draft"
-            value = str(result) if result is not None else None
+            if result is not None:
+                value = json.dumps(result) if isinstance(result, (list, dict)) else str(result)
+            else:
+                value = None
 
             supabase.table("report_fields").upsert(
                 {
@@ -111,6 +116,7 @@ async def _run_generation(report_id: str, user_id: str) -> None:
                     "strategy": field.strategy,
                     "status": field_status,
                     "value": value,
+                    "original_value": value if field_status == "draft" else None,
                 },
                 on_conflict="report_id,field_id",
             ).execute()

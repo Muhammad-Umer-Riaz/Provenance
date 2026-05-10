@@ -166,16 +166,27 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ---
 
-## Module 5: Review UI
+## Module 5: Review UI — [x] COMPLETE
 
-- [ ] Build three-pane review layout (left: intake summary / centre: draft report / right: field metadata panel)
-- [ ] Implement field status badges (draft / edited / approved) with colour coding
-- [ ] Add strategy tags visible on hover in centre pane
-- [ ] Implement inline field edit with before/after diff display
-- [ ] Implement per-field regeneration (POST /reports/:id/fields/:field_id/regenerate)
-- [ ] Implement PATCH /reports/:id/fields/:field_id for user edits (writes to audit log)
-- [ ] Implement export gate logic (export button enabled only when all required fields are `approved`)
-- [ ] Build `/reports/:id/review` route and page
+- [x] Build three-pane review layout (left: intake summary / centre: draft report / right: field metadata panel)
+- [x] Implement field status badges (draft / edited / approved) with colour coding
+- [x] Add strategy tags visible on all field rows in centre pane (always visible, not hover-only)
+- [x] Implement inline field edit with before/after diff display (amber box shows struck-through original)
+- [x] Implement per-field regeneration (POST /reports/:id/fields/:field_id/regenerate)
+- [x] Implement PATCH /reports/:id/fields/:field_id for user edits (writes to audit log)
+- [x] Implement export gate logic (export button enabled only when all non-failed fields are `approved`)
+- [x] Build `/reports/:id/review` route and page
+- [x] DB migration: `original_value text` column added to report_fields
+- [x] orchestrator.py: added `dispatch_single()` public method for single-field regeneration
+- [x] generation.py: sets `original_value` on every draft field at generation time
+- [x] Validation warnings surfaced in left pane
+
+**Validation results (10 May 2026):**
+- V1 ✓ original_value column confirmed in DB (migration applied via MCP)
+- V2 ✓ generation.py updated — original_value set on draft fields
+- V3 ✓ 46 backend tests pass after all changes
+- V4 ✓ TypeScript type-check clean (no errors)
+- V5–V16: browser validation pending — start services and navigate to /reports/:id/review
 
 ---
 

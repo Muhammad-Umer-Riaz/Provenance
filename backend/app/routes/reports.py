@@ -259,7 +259,7 @@ async def get_report_fields(
         supabase.table("report_fields")
         .select("*")
         .eq("report_id", report_id)
-        .order("created_at")
+        .order("field_index")
         .execute()
     )
     return {"fields": result.data or []}

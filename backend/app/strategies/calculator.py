@@ -186,19 +186,25 @@ CUSTOM_FUNCTIONS: dict[str, Any] = {
 
 # ── Evaluation context ─────────────────────────────────────────────────────────
 
+class _PermissiveNames(dict):
+    """Returns None for any unresolved name so optional intake fields don't raise NameNotDefined."""
+    def __missing__(self, key: str) -> None:
+        return None
+
+
 def build_eval_context(
     context: dict[str, Any],
     intake_data: dict[str, Any],
     lookup_sources: dict[str, Any],
     sla_thresholds: dict[str, Any],
-) -> dict[str, Any]:
+) -> _PermissiveNames:
     names: dict[str, Any] = {}
     names.update(intake_data)
     names.update(context)
     names["sla_thresholds"] = sla_thresholds or {}
     names["lookup_sources"] = lookup_sources or {}
     names["intake"] = intake_data
-    return names
+    return _PermissiveNames(names)
 
 
 # ── Core evaluator ─────────────────────────────────────────────────────────────

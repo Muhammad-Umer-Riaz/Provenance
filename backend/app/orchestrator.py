@@ -45,6 +45,9 @@ class ReportOrchestrator:
             return result, None
         except Exception as exc:
             self.context[field.id] = field.null_value
+            # If the field author declared a null_value, treat failure as a draft with that value
+            if field.null_value is not None:
+                return field.null_value, None
             return None, exc
 
     async def _process_field(self, field: FieldSchema) -> Any:
@@ -82,6 +85,11 @@ class ReportOrchestrator:
             self.context[field.source] = result
 
         return result
+
+    async def dispatch_single(self, field: FieldSchema, context: dict[str, Any]) -> Any:
+        """Run a single field in isolation using the provided context (for per-field regeneration)."""
+        self.context = context
+        return await self._dispatch(field)
 
     async def _dispatch(self, field: FieldSchema) -> Any:
         strategy = field.strategy

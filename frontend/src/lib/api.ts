@@ -64,3 +64,21 @@ export async function getReportFields(id: string): Promise<ReportField[]> {
 export async function generateReport(id: string): Promise<{ status: string; report_id: string }> {
   return apiFetch(`/api/reports/${id}/generate`, { method: 'POST' })
 }
+
+export async function updateField(
+  reportId: string,
+  fieldId: string,
+  body: { value?: string; status?: string },
+): Promise<ReportField> {
+  return apiFetch<ReportField>(`/api/reports/${reportId}/fields/${fieldId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+}
+
+export async function regenerateField(
+  reportId: string,
+  fieldId: string,
+): Promise<{ status: string }> {
+  return apiFetch(`/api/reports/${reportId}/fields/${fieldId}/regenerate`, { method: 'POST' })
+}

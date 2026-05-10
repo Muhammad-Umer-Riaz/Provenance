@@ -8,6 +8,7 @@ import { TemplatesPage } from '@/pages/TemplatesPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { NewReportPage } from '@/pages/NewReportPage'
 import { GeneratePage } from '@/pages/GeneratePage'
+import { ReportReview } from '@/pages/ReportReview'
 
 function App() {
   return (
@@ -46,6 +47,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <GeneratePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/:id/review"
+            element={
+              <ProtectedRoute>
+                <ReportReview />
               </ProtectedRoute>
             }
           />
