@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { getReport, getReportFields, updateField, regenerateField } from '@/lib/api'
+import { useParams } from 'react-router-dom'
+import { getReport, getReportFields, updateField, regenerateField, exportReport } from '@/lib/api'
 import { subscribeToReportFields } from '@/lib/realtime'
 import type { ReportField, ReportResponse, ValidationWarning } from '@/types/template'
 import { Loader2 } from 'lucide-react'
@@ -327,7 +327,6 @@ function FieldPanel({
 
 export function ReportReview() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
 
   const [report, setReport] = useState<ReportResponse | null>(null)
   const [fields, setFields] = useState<ReportField[]>([])
@@ -336,6 +335,8 @@ export function ReportReview() {
   const [editDraft, setEditDraft] = useState<string>('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState<'pdf' | 'docx' | 'json' | null>(null)
 
   // ── Derived ─────────────────────────────────────────────────────────────────
   const selectedField = fields.find((f) => f.field_id === selectedId) ?? null
@@ -424,6 +425,17 @@ export function ReportReview() {
     }
   }
 
+  async function handleExport(format: 'pdf' | 'docx' | 'json') {
+    setIsExporting(format)
+    try {
+      await exportReport(id!, format)
+    } catch (e) {
+      console.error('Export failed', e)
+    } finally {
+      setIsExporting(null)
+    }
+  }
+
   // ── Error state ───────────────────────────────────────────────────────────────
   if (error) {
     return (
@@ -460,19 +472,34 @@ export function ReportReview() {
             <span className="font-mono text-xs text-muted-foreground">
               {approvedCount}&thinsp;/&thinsp;{nonFailedFields.length} approved
             </span>
-            <button
-              disabled={!canExport}
-              onClick={() => navigate(`/reports/${id}/export`)}
-              title={!canExport ? `${nonFailedFields.length - approvedCount} field(s) need approval` : 'Export report'}
-              className={cn(
-                'rounded px-3 py-1.5 text-xs font-medium transition-colors',
-                canExport
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                  : 'cursor-not-allowed bg-muted text-muted-foreground',
+            <div className="relative">
+              <button
+                disabled={!canExport || isExporting !== null}
+                onClick={() => canExport && setExportOpen((o) => !o)}
+                title={!canExport ? `${nonFailedFields.length - approvedCount} field(s) need approval` : 'Export report'}
+                className={cn(
+                  'rounded px-3 py-1.5 text-xs font-medium transition-colors',
+                  canExport
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : 'cursor-not-allowed bg-muted text-muted-foreground',
+                )}
+              >
+                {isExporting ? `Exporting ${isExporting.toUpperCase()}…` : 'Export ↓'}
+              </button>
+              {exportOpen && (
+                <div className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-md border bg-card shadow-lg">
+                  {(['pdf', 'docx', 'json'] as const).map((fmt) => (
+                    <button
+                      key={fmt}
+                      onClick={() => { setExportOpen(false); void handleExport(fmt) }}
+                      className="block w-full px-3 py-2 text-left text-xs hover:bg-muted"
+                    >
+                      Download as {fmt.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
               )}
-            >
-              Export →
-            </button>
+            </div>
           </div>
         </div>
       </header>

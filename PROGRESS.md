@@ -190,14 +190,30 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ---
 
-## Module 6: Export
+## Module 6: Export — [-] IN PROGRESS
 
-- [ ] Implement POST /reports/:id/export endpoint (format: pdf / docx / json)
-- [ ] Build WeasyPrint PDF renderer
-- [ ] Build python-docx DOCX renderer
-- [ ] Build JSON export (full report state: fields, strategies, approval status, audit trail)
-- [ ] Build export UI page with format selector and file download
-- [ ] Wire export approval gate in backend (block if any required field not `approved`)
+- [x] Implement POST /reports/:id/export?format=pdf|docx|json endpoint
+- [x] Build Playwright/Chromium PDF renderer — Decision 14 (not WeasyPrint); html→pdf via page.set_content()
+- [x] Build python-docx DOCX renderer — structured: headings, tables, bold labels
+- [x] Build JSON export — full provenance: fields + audit_trail (excludes _export sentinel rows)
+- [x] Export approval gate enforced in backend (409 if any non-failed field not `approved`)
+- [x] Add export format dropdown to ReportReview header — replaces navigation stub; three items: PDF / DOCX / JSON
+- [x] Direct blob download via fetch + createObjectURL (no Supabase Storage, no new route)
+- [x] Audit log: export event appended per export with field_id="_export", inputs_snapshot={format}
+- [ ] Browser validation (V3–V17 in plan) — start services and navigate to /reports/:id/review
+
+**Implementation notes:**
+- playwright>=1.47.0 required (1.44.0 has no Python 3.13 wheel for greenlet); greenlet 3.x installs first
+- `playwright install chromium` must be run once in the venv; Docker setup is Module 9
+- _export sentinel in audit_log.field_id distinguishes report-level events from field events
+- JSON export filters _export rows out of audit_trail payload
+
+**Validation results (10 May 2026):**
+- V1 ✓ playwright and python-docx install in venv (playwright 1.59.0, python-docx 1.1.2)
+- V2 ✓ playwright install chromium completed; browser binary present
+- V18 ✓ 46 backend tests pass after all route additions
+- V19 ✓ TypeScript type-check clean (no errors)
+- V3–V17: browser validation pending
 
 ---
 

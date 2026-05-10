@@ -82,3 +82,27 @@ export async function regenerateField(
 ): Promise<{ status: string }> {
   return apiFetch(`/api/reports/${reportId}/fields/${fieldId}/regenerate`, { method: 'POST' })
 }
+
+export async function exportReport(
+  reportId: string,
+  format: 'pdf' | 'docx' | 'json',
+): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession()
+  const res = await fetch(
+    `${BASE}/api/reports/${reportId}/export?format=${format}`,
+    { method: 'POST', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } },
+  )
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Export failed (${res.status}): ${body}`)
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `report-${reportId}.${format}`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
