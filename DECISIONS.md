@@ -200,6 +200,8 @@ WeasyPrint requires system libraries (libcairo, libpango, libgdk-pixbuf) in the 
 
 **Trade-off:** The Playwright package with a Chromium binary adds approximately 150 MB to the Docker image. PDF generation spawns a browser process per export request, which is heavier than WeasyPrint's in-process rendering. At portfolio scale (low concurrent export requests) this is acceptable. python-docx remains the DOCX renderer — a headless browser cannot produce DOCX output.
 
+**Windows implementation note:** On Windows, uvicorn runs on a `SelectorEventLoop` which does not support `asyncio.create_subprocess_exec` (required internally by Playwright). The PDF renderer must run Playwright in a dedicated thread with an explicit `asyncio.ProactorEventLoop()` via `ThreadPoolExecutor` + `loop.run_in_executor`. Calling `asyncio.run()` from a thread is insufficient because it respects the global loop policy, which may still be `SelectorEventLoop`. This is a Windows-only concern; Linux (Docker) uses the default `ProactorEventLoop` and does not require the thread workaround.
+
 ---
 
 ## 15. Per-Field Model Routing for LLM Strategy Fields
@@ -359,3 +361,22 @@ The intake wizard is the correct editing surface — it already knows how to ren
 The edit session autosaves to the existing backend record (not a new one) via the existing PATCH endpoint. On submit, the report's `intake_data` is updated and status transitions to `generating` — identical to the new-draft submit path.
 
 **Trade-off:** If the user navigates away from the edit view using the browser back button, `location.state` is lost and the session cannot be resumed (unlike new drafts which have localStorage). This is acceptable — edits to an already-created report are short sessions, not multi-day drafts.
+
+---
+
+## 25. File Download: File System Access API over Blob URL + anchor.click()
+
+**Options considered:** `fetch → res.blob() → URL.createObjectURL → a.download → a.click()` (original), `fetch → FileReader data URL → a.download → a.click()`, `showSaveFilePicker → fetch → FileSystemWritableFileStream.write()` with blob URL fallback
+
+**Chosen:** `showSaveFilePicker` as primary path (Chrome/Edge 86+); blob URL `a.click()` as fallback (Firefox, Safari)
+
+**Why:**
+
+Chrome's transient user-activation token expires approximately one second after a user gesture. The export flow requires three `await` calls before the download can be initiated — `supabase.auth.getSession()`, `fetch()` (which blocks for several seconds while Playwright generates the PDF), and `res.blob()`. By the time `a.click()` is called, the activation token has expired. Without it, Chrome ignores the `download` attribute on the anchor, treats the click as a navigation to the blob URL, and records a UUID-named phantom entry in `chrome://downloads` without writing any file to disk.
+
+`showSaveFilePicker` is called as the first operation in `exportReport()`, before any `await`, so the activation token is still valid. Chrome shows a native OS save dialog; the user confirms a save location; then the backend fetch and file write proceed. The file system write goes through `FileSystemWritableFileStream`, which does not require user activation.
+
+The blob URL path is retained as a fallback for Firefox and Safari, where the user-gesture restriction on `download` attribute does not apply and the existing approach works correctly.
+
+**Trade-off:** The primary path changes the UX: instead of the file landing silently in the Downloads folder, Chrome shows a native save dialog and the user must confirm a location. This is a deliberate trade-off — the alternative is a broken download. The dialog also makes the save location explicit, which is arguably better UX for a document with a specific filename and format. The fallback path (Firefox/Safari) retains the silent-download behaviour.
+

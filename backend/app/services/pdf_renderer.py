@@ -145,8 +145,7 @@ def _build_html(report: dict, fields: list[dict]) -> str:
 </html>"""
 
 
-async def generate_pdf(report: dict, fields: list[dict]) -> bytes:
-    html = _build_html(report, fields)
+async def _playwright_render(html: str) -> bytes:
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         page = await browser.new_page()
@@ -158,3 +157,26 @@ async def generate_pdf(report: dict, fields: list[dict]) -> bytes:
         )
         await browser.close()
     return pdf_bytes
+
+
+def _run_playwright_in_thread(html: str) -> bytes:
+    # Explicitly use ProactorEventLoop — required on Windows because uvicorn's
+    # event loop does not support subprocess creation (asyncio.run() would
+    # respect the global policy which may still be SelectorEventLoop).
+    import asyncio
+    loop = asyncio.ProactorEventLoop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(_playwright_render(html))
+    finally:
+        loop.close()
+
+
+async def generate_pdf(report: dict, fields: list[dict]) -> bytes:
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+
+    html = _build_html(report, fields)
+    loop = asyncio.get_running_loop()
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        return await loop.run_in_executor(pool, _run_playwright_in_thread, html)

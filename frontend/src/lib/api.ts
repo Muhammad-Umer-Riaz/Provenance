@@ -83,10 +83,39 @@ export async function regenerateField(
   return apiFetch(`/api/reports/${reportId}/fields/${fieldId}/regenerate`, { method: 'POST' })
 }
 
+type SaveFilePicker = (opts: {
+  suggestedName?: string
+  types?: { description?: string; accept: Record<string, string[]> }[]
+}) => Promise<FileSystemFileHandle>
+
+const mimeTypes: Record<string, string> = {
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  json: 'application/json',
+}
+
 export async function exportReport(
   reportId: string,
   format: 'pdf' | 'docx' | 'json',
 ): Promise<void> {
+  const picker = (window as Window & { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker
+
+  // Acquire the file handle BEFORE any await — user-gesture token is still alive here.
+  // Chrome loses the token after the first await, causing a.click() to ignore the
+  // download attribute and produce UUID-named entries that never land on disk.
+  let fileHandle: FileSystemFileHandle | undefined
+  if (picker) {
+    try {
+      fileHandle = await picker({
+        suggestedName: `report-${reportId}.${format}`,
+        types: [{ description: `${format.toUpperCase()} file`, accept: { [mimeTypes[format]]: [`.${format}`] } }],
+      })
+    } catch (err) {
+      if ((err as DOMException).name === 'AbortError') return
+      throw err
+    }
+  }
+
   const { data: { session } } = await supabase.auth.getSession()
   const res = await fetch(
     `${BASE}/api/reports/${reportId}/export?format=${format}`,
@@ -97,6 +126,15 @@ export async function exportReport(
     throw new Error(`Export failed (${res.status}): ${body}`)
   }
   const blob = await res.blob()
+
+  if (fileHandle) {
+    const writable = await fileHandle.createWritable()
+    await writable.write(blob)
+    await writable.close()
+    return
+  }
+
+  // Fallback for browsers without File System Access API (Firefox, Safari)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

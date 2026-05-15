@@ -190,7 +190,7 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ---
 
-## Module 6: Export — [-] IN PROGRESS
+## Module 6: Export — [x] COMPLETE
 
 - [x] Implement POST /reports/:id/export?format=pdf|docx|json endpoint
 - [x] Build Playwright/Chromium PDF renderer — Decision 14 (not WeasyPrint); html→pdf via page.set_content()
@@ -198,22 +198,31 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 - [x] Build JSON export — full provenance: fields + audit_trail (excludes _export sentinel rows)
 - [x] Export approval gate enforced in backend (409 if any non-failed field not `approved`)
 - [x] Add export format dropdown to ReportReview header — replaces navigation stub; three items: PDF / DOCX / JSON
-- [x] Direct blob download via fetch + createObjectURL (no Supabase Storage, no new route)
+- [x] Download via File System Access API (showSaveFilePicker) with blob URL fallback — Decision 25
 - [x] Audit log: export event appended per export with field_id="_export", inputs_snapshot={format}
-- [ ] Browser validation (V3–V17 in plan) — start services and navigate to /reports/:id/review
+- [x] Browser validation complete (15 May 2026)
 
-**Implementation notes:**
-- playwright>=1.47.0 required (1.44.0 has no Python 3.13 wheel for greenlet); greenlet 3.x installs first
-- `playwright install chromium` must be run once in the venv; Docker setup is Module 9
-- _export sentinel in audit_log.field_id distinguishes report-level events from field events
-- JSON export filters _export rows out of audit_trail payload
-
-**Validation results (10 May 2026):**
+**Validation results (15 May 2026):**
 - V1 ✓ playwright and python-docx install in venv (playwright 1.59.0, python-docx 1.1.2)
 - V2 ✓ playwright install chromium completed; browser binary present
+- V3 ✓ covered by V4 (same gate code path)
+- V4 ✓ POST /export on partially-approved report → 409 "2 field(s) not yet approved: supplier_details, scorecard_table"
+- V5 ✓ POST /export (format=json) → 200, valid JSON, all 5 top-level keys present
+- V6 ✓ JSON audit_trail has 426 field-level events
+- V7 ✓ _export sentinel rows excluded from audit_trail
+- V8 ✓ POST /export (format=pdf) → 200, application/pdf, 69968 bytes, %PDF magic
+- V9 ✓ PDF valid: 5 pages, 30 streams, complete %%PDF/%%EOF/xref structure; all 6 sections rendered
+- V10 ✓ POST /export (format=docx) → 200, correct OOXML content-type, 39779 bytes
+- V11 ✓ DOCX: valid ZIP, all 6 section headings, 5 tables, supplier name present
+- V12 ✓ Export dropdown visible; disabled when fields not all approved (34/36 → disabled); enabled at 47/47
+- V13 ✓ After approving all fields (36/36 on Acme report) → Export button enabled
+- V14 ✓ "Download as PDF" → file saved, page stays at /review URL
+- V15 ✓ "Download as DOCX" → file saved, page stays at /review URL
+- V16 ✓ "Download as JSON" → file saved, page stays at /review URL
+- V17 ✓ _export audit_log rows inserted per export event (6 rows confirmed across 3 formats)
 - V18 ✓ 46 backend tests pass after all route additions
 - V19 ✓ TypeScript type-check clean (no errors)
-- V3–V17: browser validation pending
+- V20 ✓ Chrome: native save dialog on export click; file lands at chosen path (PDF, DOCX, JSON)
 
 ---
 
