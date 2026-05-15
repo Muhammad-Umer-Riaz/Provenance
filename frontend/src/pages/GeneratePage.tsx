@@ -22,6 +22,15 @@ function supplierName(report: ReportResponse): string {
 
 type FieldStatus = ReportField['status']
 
+function StepItem({ label, state }: { label: string; state: 'done' | 'active' | 'upcoming' }) {
+  return (
+    <span className={cn('flex items-center gap-1', state === 'active' ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+      {state === 'done' && <span className="text-emerald-600 text-[10px]">✓</span>}
+      {label}
+    </span>
+  )
+}
+
 function StatusIcon({ s }: { s: FieldStatus }) {
   if (s === 'generating') return <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
   if (s === 'draft' || s === 'edited' || s === 'approved')
@@ -162,7 +171,19 @@ export function GeneratePage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
+    <div className="flex flex-col">
+      {/* Step ribbon */}
+      <div className="flex-none border-b bg-muted/30 px-6 py-2">
+        <div className="flex items-center gap-2 text-xs">
+          <StepItem label="Intake" state="done" />
+          <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+          <StepItem label="Generate" state="active" />
+          <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+          <StepItem label="Review" state="upcoming" />
+        </div>
+      </div>
+
+    <div className="mx-auto max-w-2xl w-full px-4 py-10">
       {/* Header */}
       <div className="mb-6">
         <p className="font-mono text-xs text-muted-foreground">reports › generate</p>
@@ -241,6 +262,7 @@ export function GeneratePage() {
       <p className="mt-6 text-center text-xs text-muted-foreground">
         Generation typically takes 30–60 seconds. You will be redirected automatically.
       </p>
+    </div>
     </div>
   )
 }

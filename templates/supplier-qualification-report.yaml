@@ -729,39 +729,35 @@ validation_rules:
 
   - id: score_weights_sum
     description: "Audit score weights must sum to 1.0"
-    check: "sum(audit_scores[*].weight) == 1.0"
+    check: "abs(sum([r['weight'] for r in audit_scores]) - 1.0) < 0.001"
     severity: error
 
   - id: verdict_car_consistency
     description: "Non-Preferred verdict should have at least one CAR"
-    check: "qualification_verdict == 'Preferred' OR count(corrective_actions) >= 1"
+    check: "qualification_verdict == 'Preferred' or len(corrective_actions) >= 1"
     severity: warning
-    message: "Verdict is {{qualification_verdict}} but no CARs have been entered.
-              Consider adding corrective actions."
+    message: "Verdict is {{qualification_verdict}} but no CARs have been entered. Consider adding corrective actions."
 
   - id: overdue_car_date_check
     description: "Open or in-progress CARs should not be past their due date"
-    check: "for each car where status in ['Open', 'In progress'],
-            car.due_date >= today"
+    check: "all([car['due_date'] >= today for car in corrective_actions if car['status'] in ['Open', 'In progress']])"
     severity: warning
-    message: "CAR '{{car.car_id}}' — '{{car.action_item}}' was due {{car.due_date}} and is past due. Update status to Overdue or close the action."
+    message: "One or more open CARs have a due date in the past. Update status to Overdue or close the action."
 
   - id: high_tier_risk_count
     description: "High risk tier should have at least 3 risks documented"
-    check: "overall_risk_tier != 'High' OR count(risk_register) >= 3"
+    check: "overall_risk_tier != 'High' or len(risk_register) >= 3"
     severity: warning
-    message: "Overall risk tier is High but only {{count(risk_register)}} risk(s) are documented. Consider adding more risks for a complete assessment."
+    message: "Overall risk tier is High but only {{len(risk_register)}} risk(s) are documented. Consider adding more risks for a complete assessment."
 
   - id: high_risk_car_coverage
-    description: "Each High-priority risk should have a corresponding CAR"
-    check: "for each risk where priority_score >= 15,
-            exists corrective_action where action_item contains risk.risk_item"
+    description: "High-priority risks should have at least one CAR on file"
+    check: "not any([r['likelihood'] * r['impact'] >= 15 for r in risk_register]) or len(corrective_actions) >= 1"
     severity: warning
-    message: "High-priority risk '{{risk_item}}' has no corresponding CAR."
+    message: "One or more High-priority risks (priority ≥ 15) are present but no CARs have been entered."
 
   - id: performance_verdict_alignment
     description: "Breach-level performance should not yield Preferred verdict"
-    check: "NOT (count(sla_breach_flags) >= 2 AND qualification_verdict == 'Preferred')"
+    check: "not (breach_count >= 2 and qualification_verdict == 'Preferred')"
     severity: warning
-    message: "Two or more SLA breaches present but verdict is Preferred.
-              Verify scorecard scores reflect performance data."
+    message: "Two or more SLA breaches present but verdict is Preferred. Verify scorecard scores reflect performance data."

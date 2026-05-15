@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import date
 from typing import Any
 
 from simpleeval import EvalWithCompoundTypes
@@ -29,7 +30,8 @@ def _interpolate_message(message: str | None, context: dict[str, Any]) -> str:
 def run_validation_rules(template: TemplateSchema, context: dict[str, Any]) -> list[dict[str, Any]]:
     """Evaluate every validation_rule in the template against the generated context."""
     results: list[dict[str, Any]] = []
-    evaluator = EvalWithCompoundTypes(names=context)
+    ctx = {**context, "today": date.today().isoformat()}
+    evaluator = EvalWithCompoundTypes(names=ctx)
 
     for rule in (template.validation_rules or []):
         try:
@@ -42,7 +44,7 @@ def run_validation_rules(template: TemplateSchema, context: dict[str, Any]) -> l
             "id": rule.id,
             "description": rule.description,
             "severity": rule.severity,
-            "message": _interpolate_message(rule.message, context),
+            "message": _interpolate_message(rule.message, ctx),
             "passed": passed,
         })
 

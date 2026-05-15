@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { getReport, getReportFields, updateField, regenerateField, exportReport } from '@/lib/api'
 import { subscribeToReportFields } from '@/lib/realtime'
 import type { ReportField, ReportResponse, ValidationWarning } from '@/types/template'
-import { Loader2 } from 'lucide-react'
+import { ChevronRight, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -38,6 +38,15 @@ function parseStructuredValue(value: string | null): StructuredValue | null {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
+
+function StepItem({ label, state }: { label: string; state: 'done' | 'active' | 'upcoming' }) {
+  return (
+    <span className={cn('flex items-center gap-1', state === 'active' ? 'font-medium text-foreground' : 'text-muted-foreground')}>
+      {state === 'done' && <span className="text-emerald-600 text-[10px]">✓</span>}
+      {label}
+    </span>
+  )
+}
 
 function StatusBadge({ s }: { s: ReportField['status'] }) {
   const cls = {
@@ -154,7 +163,6 @@ function FieldRow({
         isSelected && 'border-l-[3px] border-l-foreground/50 bg-accent/5',
       )}
     >
-      {/* Header row */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <StatusBadge s={field.status} />
@@ -163,7 +171,6 @@ function FieldRow({
         <StrategyTag strategy={field.strategy} />
       </div>
 
-      {/* Value */}
       {field.value && (
         <div className="mt-1.5">
           {structured?.type === 'array' ? (
@@ -176,7 +183,6 @@ function FieldRow({
         </div>
       )}
 
-      {/* Diff: show original struck through when edited */}
       {showDiff && (
         <div className="mt-2 rounded border border-amber-200 bg-amber-50/60 px-2 py-1.5">
           <p className="mb-0.5 text-[9px] font-medium uppercase tracking-widest text-amber-600">
@@ -188,6 +194,96 @@ function FieldRow({
 
       {!field.value && field.status === 'failed' && (
         <p className="mt-1 text-[11px] text-red-500">Generation failed — regenerate or fill manually</p>
+      )}
+    </div>
+  )
+}
+
+// ── ValidationTab ──────────────────────────────────────────────────────────────
+
+function ValidationTab({ warnings }: { warnings: ValidationWarning[] }) {
+  const [showPassed, setShowPassed] = useState(false)
+  const issues = warnings.filter((w) => !w.passed)
+  const passed = warnings.filter((w) => w.passed)
+
+  if (!warnings.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-sm text-muted-foreground">No validation data yet.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Generate a report to see rule results.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Issues */}
+      {issues.length > 0 && (
+        <div>
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-red-600">
+            {issues.length} Issue{issues.length !== 1 ? 's' : ''}
+          </p>
+          <div className="space-y-2">
+            {issues.map((w) => (
+              <div
+                key={w.id}
+                className={cn(
+                  'rounded border px-3 py-2.5',
+                  w.severity === 'error'
+                    ? 'border-red-200 bg-red-50'
+                    : 'border-amber-200 bg-amber-50',
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className={cn('text-[11px] font-medium', w.severity === 'error' ? 'text-red-700' : 'text-amber-700')}>
+                    {w.description}
+                  </p>
+                  <span className={cn(
+                    'shrink-0 rounded px-1.5 py-0.5 font-mono text-[9px] font-medium',
+                    w.severity === 'error' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600',
+                  )}>
+                    {w.severity}
+                  </span>
+                </div>
+                {w.message && (
+                  <p className={cn('mt-1 text-[10px]', w.severity === 'error' ? 'text-red-600' : 'text-amber-600')}>
+                    {w.message}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {issues.length === 0 && (
+        <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+          <p className="text-[11px] font-medium text-emerald-700">All checks passed</p>
+        </div>
+      )}
+
+      {/* Passed checks toggle */}
+      {passed.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowPassed((v) => !v)}
+            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showPassed ? '▾' : '▸'} {showPassed ? 'Hide' : 'Show'} {passed.length} passed check{passed.length !== 1 ? 's' : ''}
+          </button>
+          {showPassed && (
+            <div className="mt-2 space-y-1.5">
+              {passed.map((w) => (
+                <div key={w.id} className="rounded border border-emerald-200 bg-emerald-50/60 px-3 py-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-emerald-600 text-[10px]">✓</span>
+                    <p className="text-[11px] text-emerald-700">{w.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
@@ -232,13 +328,11 @@ function FieldPanel({
 
   return (
     <div className="space-y-4">
-      {/* Identity */}
       <div>
         <p className="text-sm font-semibold">{formatId(field.field_id)}</p>
         <p className="font-mono text-[10px] text-muted-foreground">{field.field_id}</p>
       </div>
 
-      {/* Badges */}
       <div className="flex flex-wrap items-center gap-1.5">
         <StatusBadge s={field.status} />
         <StrategyTag strategy={field.strategy} />
@@ -250,7 +344,6 @@ function FieldPanel({
       <div className="border-t" />
 
       {isEditing ? (
-        /* Edit mode */
         <div className="space-y-2">
           <textarea
             className="w-full rounded border bg-background px-2 py-1.5 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-foreground/30"
@@ -276,7 +369,6 @@ function FieldPanel({
           </div>
         </div>
       ) : (
-        /* View mode: action buttons */
         <div className="space-y-2">
           {canApprove && (
             <button
@@ -301,7 +393,7 @@ function FieldPanel({
             </button>
           )}
 
-          {isTable && !isLocked && (
+          {isTable && !['pending', 'generating', 'failed'].includes(field.status) && (
             <p className="text-[10px] text-muted-foreground">
               Table fields cannot be edited inline — regenerate if intake data has changed.
             </p>
@@ -336,6 +428,7 @@ export function ReportReview() {
   const [error, setError] = useState<string | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
   const [isExporting, setIsExporting] = useState<'pdf' | 'docx' | 'json' | null>(null)
+  const [centerTab, setCenterTab] = useState<'report' | 'validation'>('report')
 
   // ── Derived ─────────────────────────────────────────────────────────────────
   const selectedField = fields.find((f) => f.field_id === selectedId) ?? null
@@ -345,7 +438,9 @@ export function ReportReview() {
   const approvedCount = fields.filter((f) => f.status === 'approved').length
   const canExport = nonFailedFields.length > 0 && approvedCount === nonFailedFields.length
 
-  // Group fields by section in DB order
+  const warnings = (report?.validation_warnings ?? []) as ValidationWarning[]
+  const issueCount = warnings.filter((w) => !w.passed).length
+
   const sectionOrder: string[] = []
   const fieldsBySection: Record<string, ReportField[]> = {}
   for (const f of fields) {
@@ -452,6 +547,18 @@ export function ReportReview() {
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen flex-col overflow-hidden">
+
+      {/* ── Step ribbon ── */}
+      <div className="flex-none border-b bg-muted/30 px-6 py-2">
+        <div className="flex items-center gap-2 text-xs">
+          <StepItem label="Intake" state="done" />
+          <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+          <StepItem label="Generate" state="done" />
+          <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+          <StepItem label="Review" state="active" />
+        </div>
+      </div>
+
       {/* ── Sticky header ── */}
       <header className="flex-none border-b bg-background px-6 py-3">
         <div className="flex items-center justify-between">
@@ -505,9 +612,9 @@ export function ReportReview() {
 
       {/* ── Three-pane body ── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left pane — intake summary */}
+
+        {/* Left pane — score + intake summary */}
         <aside className="flex w-72 flex-none flex-col overflow-y-auto border-r bg-muted/20 px-4 py-4">
-          {/* Score + verdict card */}
           <div className="mb-4 rounded-lg border bg-card px-3 py-2.5">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Score</span>
@@ -527,30 +634,6 @@ export function ReportReview() {
             </div>
           </div>
 
-          {/* Validation warnings */}
-          {(report?.validation_warnings ?? []).length > 0 && (
-            <div className="mb-4">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-amber-600">
-                {report!.validation_warnings!.length} Warning
-                {report!.validation_warnings!.length !== 1 ? 's' : ''}
-              </p>
-              <div className="space-y-1.5">
-                {(report!.validation_warnings as ValidationWarning[]).map((w) => (
-                  <div
-                    key={w.id}
-                    className="rounded border border-amber-200 bg-amber-50 px-2 py-1.5"
-                  >
-                    <p className="text-[11px] font-medium text-amber-700">{w.description}</p>
-                    {w.message && (
-                      <p className="mt-0.5 text-[10px] text-amber-600">{w.message}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Intake summary */}
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Intake
           </p>
@@ -594,34 +677,76 @@ export function ReportReview() {
           </div>
         </aside>
 
-        {/* Center pane — draft report */}
-        <main className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="mx-auto max-w-2xl space-y-8">
-            {sectionOrder.map((sectionId) => (
-              <section key={sectionId}>
-                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  § {formatId(sectionId)}
-                </h2>
-                <div className="space-y-2">
-                  {fieldsBySection[sectionId]?.map((field) => (
-                    <FieldRow
-                      key={field.field_id}
-                      field={field}
-                      isSelected={selectedId === field.field_id}
-                      onClick={() =>
-                        setSelectedId(
-                          selectedId === field.field_id ? null : field.field_id,
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
+        {/* Center pane — tabs + report / validation */}
+        <main className="flex flex-1 flex-col overflow-hidden">
+          {/* Tab bar */}
+          <div className="flex-none border-b px-6 pt-3">
+            <div className="flex gap-1">
+              <button
+                onClick={() => setCenterTab('report')}
+                className={cn(
+                  'px-3 py-1.5 text-xs font-medium transition-colors border-b-2 -mb-px',
+                  centerTab === 'report'
+                    ? 'border-foreground text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                )}
+              >
+                Report
+              </button>
+              <button
+                onClick={() => setCenterTab('validation')}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors border-b-2 -mb-px',
+                  centerTab === 'validation'
+                    ? 'border-foreground text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                )}
+              >
+                Validation
+                {issueCount > 0 && (
+                  <span className="rounded-full bg-red-500 px-1.5 py-0.5 font-mono text-[9px] text-white">
+                    {issueCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
 
-            {fields.length === 0 && (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          {/* Tab content */}
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {centerTab === 'report' ? (
+              <div className="mx-auto max-w-2xl space-y-8">
+                {sectionOrder.map((sectionId) => (
+                  <section key={sectionId}>
+                    <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      {formatId(sectionId)}
+                    </h2>
+                    <div className="space-y-2">
+                      {fieldsBySection[sectionId]?.map((field) => (
+                        <FieldRow
+                          key={field.field_id}
+                          field={field}
+                          isSelected={selectedId === field.field_id}
+                          onClick={() =>
+                            setSelectedId(
+                              selectedId === field.field_id ? null : field.field_id,
+                            )
+                          }
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+
+                {fields.length === 0 && (
+                  <div className="flex items-center justify-center py-20">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mx-auto max-w-2xl">
+                <ValidationTab warnings={warnings} />
               </div>
             )}
           </div>

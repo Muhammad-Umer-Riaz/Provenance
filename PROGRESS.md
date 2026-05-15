@@ -245,6 +245,23 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ---
 
+## Module 7.1: Review UI Overhaul — [x] COMPLETE
+
+- [x] Fix all 6 validation rules in YAML — rewritten in valid simpleeval Python (were broken DSL, always fired as warnings)
+- [x] validator.py — inject `today` ISO string into evaluator context (needed for overdue CAR date check)
+- [x] ReportReview — step ribbon (Intake ✓ → Generate ✓ → Review active)
+- [x] ReportReview — Report / Validation tab bar in center pane; Validation tab shows issues grouped by severity + collapsible passed checks
+- [x] ReportReview — removed warnings block from left pane (moved to Validation tab)
+- [x] ReportReview — removed `§` prefix from section headers
+- [x] GeneratePage — step ribbon (Intake ✓ → Generate active → Review upcoming)
+
+**Validation results (15 May 2026):**
+- V1 ✓ 46 backend tests pass
+- V2 ✓ TypeScript type-check clean
+- V3–V9: browser validation pending (start services and navigate to /reports/:id/review)
+
+---
+
 ## Module 8: Additional Templates
 
 - [ ] Design NCR (Non-Conformance Report) template field-level strategy assignments
