@@ -1,0 +1,1142 @@
+[
+  {
+    "id": "case-01",
+    "_note": "Preferred | Low risk | Re-qual — clean high-scorer, all Pass SLAs",
+    "intake": {
+      "supplier_name": "Apex Components GmbH",
+      "supplier_country": "Germany",
+      "supplier_contact_name": "Klaus Hoffmann",
+      "supplier_contact_title": "Quality Director",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000001",
+      "certifications_held": ["ISO 9001:2015", "IATF 16949"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Re-qualification",
+      "previous_verdict": "Preferred",
+      "previous_composite_score": 4.65,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 5, "notes": "Exemplary QMS"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 5, "notes": "Consistent delivery"},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 4, "notes": "Solid financials"},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 5, "notes": "Strong R&D"},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 5, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 4, "notes": ""}
+      ],
+      "otd_rate_pct": 95.0,
+      "defect_rate_pct": 0.8,
+      "invoice_accuracy_pct": 98.0,
+      "open_ncr_count": 0,
+      "ncr_avg_close_days": 8.0,
+      "prev_otd_rate_pct": 94.0,
+      "prev_defect_rate_pct": 1.0,
+      "prev_invoice_accuracy_pct": 97.0,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Lead time variability",
+          "risk_item": "Seasonal capacity constraint in Q4",
+          "likelihood": 2,
+          "impact": 3,
+          "owner": "Procurement",
+          "mitigation": "Buffer stock agreement in place"
+        }
+      ],
+      "corrective_actions": []
+    },
+    "expected": {
+      "composite_score": 4.75,
+      "qualification_verdict": "Preferred",
+      "overall_risk_tier": "Low",
+      "otd_sla_status": "Pass",
+      "defect_sla_status": "Pass",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-02",
+    "_note": "Preferred | Medium risk | Initial — no prev data, medium risk",
+    "intake": {
+      "supplier_name": "Horizon Electronics Inc",
+      "supplier_country": "United States",
+      "supplier_contact_name": "Sarah Chen",
+      "supplier_contact_title": "VP Operations",
+      "commodity_category": "Electronic assemblies",
+      "duns_number": "100000002",
+      "certifications_held": ["ISO 9001:2015", "ISO 27001"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Initial qualification",
+      "previous_verdict": null,
+      "previous_composite_score": null,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 4, "notes": "Good QMS"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 4, "notes": "Track record limited"},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 4, "notes": "Sound"},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 5, "notes": "Strong"},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 4, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 5, "notes": ""}
+      ],
+      "otd_rate_pct": 92.0,
+      "defect_rate_pct": 1.0,
+      "invoice_accuracy_pct": 97.0,
+      "open_ncr_count": 1,
+      "ncr_avg_close_days": 12.0,
+      "prev_otd_rate_pct": null,
+      "prev_defect_rate_pct": null,
+      "prev_invoice_accuracy_pct": null,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Single-source dependency",
+          "risk_item": "Sole source of custom ASIC",
+          "likelihood": 3,
+          "impact": 3,
+          "owner": "Engineering",
+          "mitigation": "Second-source qualification in progress"
+        }
+      ],
+      "corrective_actions": []
+    },
+    "expected": {
+      "composite_score": 4.20,
+      "qualification_verdict": "Preferred",
+      "overall_risk_tier": "Medium",
+      "otd_sla_status": "Pass",
+      "defect_sla_status": "Pass",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-03",
+    "_note": "Preferred | High risk | Re-qual — score ≥4.0 despite High risk",
+    "intake": {
+      "supplier_name": "Titan Alloys Ltd",
+      "supplier_country": "United Kingdom",
+      "supplier_contact_name": "James Robertson",
+      "supplier_contact_title": "Supply Chain Manager",
+      "commodity_category": "Raw materials — metals",
+      "duns_number": "100000003",
+      "certifications_held": ["ISO 9001:2015", "ISO 14001:2015"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Re-qualification",
+      "previous_verdict": "Preferred",
+      "previous_composite_score": 4.30,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 4, "notes": "Strong"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 5, "notes": "Excellent"},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 4, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 5, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 4, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 4, "notes": ""}
+      ],
+      "otd_rate_pct": 93.0,
+      "defect_rate_pct": 1.2,
+      "invoice_accuracy_pct": 96.0,
+      "open_ncr_count": 2,
+      "ncr_avg_close_days": 11.0,
+      "prev_otd_rate_pct": 91.0,
+      "prev_defect_rate_pct": 1.4,
+      "prev_invoice_accuracy_pct": 95.0,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Geopolitical / country risk",
+          "risk_item": "Post-Brexit trade friction on raw material imports",
+          "likelihood": 5,
+          "impact": 4,
+          "owner": "Procurement",
+          "mitigation": "EU bonded warehouse established"
+        },
+        {
+          "risk_category": "Currency / FX exposure",
+          "risk_item": "GBP/EUR volatility on contract pricing",
+          "likelihood": 3,
+          "impact": 3,
+          "owner": "Finance",
+          "mitigation": "Forward contracts in place"
+        }
+      ],
+      "corrective_actions": []
+    },
+    "expected": {
+      "composite_score": 4.40,
+      "qualification_verdict": "Preferred",
+      "overall_risk_tier": "High",
+      "otd_sla_status": "Pass",
+      "defect_sla_status": "Pass",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-04",
+    "_note": "Conditional | Low risk | Re-qual — improving trend from prev Conditional, OTD Watch, 0 breaches",
+    "intake": {
+      "supplier_name": "Nordic Parts AS",
+      "supplier_country": "Norway",
+      "supplier_contact_name": "Erik Larsson",
+      "supplier_contact_title": "Quality Manager",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000004",
+      "certifications_held": ["ISO 9001:2015"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Re-qualification",
+      "previous_verdict": "Conditional",
+      "previous_composite_score": 3.50,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 4, "notes": "Improved"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 3, "notes": "Still improving"},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 4, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 4, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 4, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 3, "notes": ""}
+      ],
+      "otd_rate_pct": 89.0,
+      "defect_rate_pct": 1.4,
+      "invoice_accuracy_pct": 96.0,
+      "open_ncr_count": 2,
+      "ncr_avg_close_days": 13.0,
+      "prev_otd_rate_pct": 86.0,
+      "prev_defect_rate_pct": 1.8,
+      "prev_invoice_accuracy_pct": 94.0,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Lead time variability",
+          "risk_item": "Extended lead times due to port congestion",
+          "likelihood": 2,
+          "impact": 2,
+          "owner": "Logistics",
+          "mitigation": "Safety stock maintained at 4-week level"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Implement statistical process control on machining line",
+          "owner": "Production Manager",
+          "due_date": "2026-07-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 3.70,
+      "qualification_verdict": "Conditional",
+      "overall_risk_tier": "Low",
+      "otd_sla_status": "Watch",
+      "defect_sla_status": "Pass",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-05",
+    "_note": "Conditional | Medium risk | Re-qual — mixed Watch SLAs, 0 breaches",
+    "intake": {
+      "supplier_name": "Meridian Fabrications",
+      "supplier_country": "France",
+      "supplier_contact_name": "Marie Dupont",
+      "supplier_contact_title": "Operations Director",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000005",
+      "certifications_held": ["ISO 9001:2015", "IATF 16949"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Re-qualification",
+      "previous_verdict": "Conditional",
+      "previous_composite_score": 3.50,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 4, "notes": ""},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 3, "notes": "Watch"},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 3, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 4, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 4, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 4, "notes": ""}
+      ],
+      "otd_rate_pct": 87.0,
+      "defect_rate_pct": 2.5,
+      "invoice_accuracy_pct": 93.0,
+      "open_ncr_count": 3,
+      "ncr_avg_close_days": 19.0,
+      "prev_otd_rate_pct": 88.0,
+      "prev_defect_rate_pct": 2.8,
+      "prev_invoice_accuracy_pct": 92.0,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Quality capability gap",
+          "risk_item": "Ageing inspection equipment",
+          "likelihood": 3,
+          "impact": 3,
+          "owner": "Quality",
+          "mitigation": "CapEx budget approved for 2026 refresh"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Renew CMM calibration programme",
+          "owner": "Quality Manager",
+          "due_date": "2026-07-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 3.55,
+      "qualification_verdict": "Conditional",
+      "overall_risk_tier": "Medium",
+      "otd_sla_status": "Watch",
+      "defect_sla_status": "Watch",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-06",
+    "_note": "Conditional | High risk | For-cause — forced review, all SLAs Watch or Pass",
+    "intake": {
+      "supplier_name": "Pacific Precision Co",
+      "supplier_country": "Japan",
+      "supplier_contact_name": "Kenji Yamamoto",
+      "supplier_contact_title": "General Manager",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000006",
+      "certifications_held": ["ISO 9001:2015", "IATF 16949", "ISO 14001:2015"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "For-cause review",
+      "previous_verdict": null,
+      "previous_composite_score": null,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 3, "notes": "Process gaps identified"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 4, "notes": ""},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 4, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 4, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 4, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 4, "notes": ""}
+      ],
+      "otd_rate_pct": 87.0,
+      "defect_rate_pct": 2.0,
+      "invoice_accuracy_pct": 96.0,
+      "open_ncr_count": 3,
+      "ncr_avg_close_days": 12.0,
+      "prev_otd_rate_pct": null,
+      "prev_defect_rate_pct": null,
+      "prev_invoice_accuracy_pct": null,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Geopolitical / country risk",
+          "risk_item": "Export control restrictions on precision tooling",
+          "likelihood": 4,
+          "impact": 4,
+          "owner": "Legal",
+          "mitigation": "Compliance audit scheduled"
+        },
+        {
+          "risk_category": "Regulatory / compliance",
+          "risk_item": "REACH compliance documentation gaps",
+          "likelihood": 3,
+          "impact": 2,
+          "owner": "Quality",
+          "mitigation": "SDS review underway"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Close QMS process gaps identified in for-cause audit",
+          "owner": "Quality Manager",
+          "due_date": "2026-07-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 3.75,
+      "qualification_verdict": "Conditional",
+      "overall_risk_tier": "High",
+      "otd_sla_status": "Watch",
+      "defect_sla_status": "Watch",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-07",
+    "_note": "Conditional | Medium risk | Initial — first assessment, Conditional score range",
+    "intake": {
+      "supplier_name": "Vesta Manufacturing Srl",
+      "supplier_country": "Italy",
+      "supplier_contact_name": "Luca Ferrari",
+      "supplier_contact_title": "Managing Director",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000007",
+      "certifications_held": ["ISO 9001:2015"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Initial qualification",
+      "previous_verdict": null,
+      "previous_composite_score": null,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 3, "notes": "Adequate"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 4, "notes": ""},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 4, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 4, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 3, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 4, "notes": ""}
+      ],
+      "otd_rate_pct": 88.0,
+      "defect_rate_pct": 1.4,
+      "invoice_accuracy_pct": 94.0,
+      "open_ncr_count": 1,
+      "ncr_avg_close_days": 15.0,
+      "prev_otd_rate_pct": null,
+      "prev_defect_rate_pct": null,
+      "prev_invoice_accuracy_pct": null,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Single-source dependency",
+          "risk_item": "Sole qualified supplier for profile extrusions",
+          "likelihood": 3,
+          "impact": 3,
+          "owner": "Procurement",
+          "mitigation": "Alternate source identified; qualification pending"
+        },
+        {
+          "risk_category": "Capacity constraint",
+          "risk_item": "Limited capacity during peak demand",
+          "likelihood": 2,
+          "impact": 2,
+          "owner": "Operations",
+          "mitigation": "Capacity planning review scheduled"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Establish formal inspection release procedure",
+          "owner": "Quality Director",
+          "due_date": "2026-07-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 3.65,
+      "qualification_verdict": "Conditional",
+      "overall_risk_tier": "Medium",
+      "otd_sla_status": "Watch",
+      "defect_sla_status": "Pass",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-08",
+    "_note": "Conditional | Low risk | Re-qual — NO corrective_actions; car_summary field condition skipped",
+    "intake": {
+      "supplier_name": "Clarity Components Ltd",
+      "supplier_country": "Netherlands",
+      "supplier_contact_name": "Pieter van der Berg",
+      "supplier_contact_title": "Quality Manager",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000008",
+      "certifications_held": ["ISO 9001:2015", "IATF 16949"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Re-qualification",
+      "previous_verdict": "Conditional",
+      "previous_composite_score": 3.60,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 4, "notes": ""},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 4, "notes": ""},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 3, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 4, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 4, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 4, "notes": ""}
+      ],
+      "otd_rate_pct": 89.0,
+      "defect_rate_pct": 1.3,
+      "invoice_accuracy_pct": 97.0,
+      "open_ncr_count": 1,
+      "ncr_avg_close_days": 12.0,
+      "prev_otd_rate_pct": 87.0,
+      "prev_defect_rate_pct": 1.5,
+      "prev_invoice_accuracy_pct": 96.0,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Lead time variability",
+          "risk_item": "Single tier-2 material supplier",
+          "likelihood": 2,
+          "impact": 2,
+          "owner": "Procurement",
+          "mitigation": "Safety stock buffer maintained"
+        }
+      ],
+      "corrective_actions": []
+    },
+    "expected": {
+      "composite_score": 3.80,
+      "qualification_verdict": "Conditional",
+      "overall_risk_tier": "Low",
+      "otd_sla_status": "Watch",
+      "defect_sla_status": "Pass",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-09",
+    "_note": "Probationary | Medium risk | Re-qual — declining trend from prev Conditional",
+    "intake": {
+      "supplier_name": "Delta Supply Co",
+      "supplier_country": "Poland",
+      "supplier_contact_name": "Anna Kowalski",
+      "supplier_contact_title": "Operations Manager",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000009",
+      "certifications_held": ["ISO 9001:2015"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Re-qualification",
+      "previous_verdict": "Conditional",
+      "previous_composite_score": 3.60,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 3, "notes": "Deteriorated"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 3, "notes": ""},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 3, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 3, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 3, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 2, "notes": ""}
+      ],
+      "otd_rate_pct": 87.0,
+      "defect_rate_pct": 2.8,
+      "invoice_accuracy_pct": 91.0,
+      "open_ncr_count": 3,
+      "ncr_avg_close_days": 18.0,
+      "prev_otd_rate_pct": 89.0,
+      "prev_defect_rate_pct": 2.2,
+      "prev_invoice_accuracy_pct": 93.0,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Quality capability gap",
+          "risk_item": "Reduced inspection staffing",
+          "likelihood": 3,
+          "impact": 3,
+          "owner": "HR / Quality",
+          "mitigation": "Hiring plan approved"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Hire and train 2 additional inspection staff",
+          "owner": "HR Manager",
+          "due_date": "2026-07-01",
+          "status": "Open"
+        },
+        {
+          "car_id": "CAR-002",
+          "action_item": "Implement incoming inspection gate for all shipments",
+          "owner": "Quality Manager",
+          "due_date": "2026-08-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 2.95,
+      "qualification_verdict": "Probationary",
+      "overall_risk_tier": "Medium",
+      "otd_sla_status": "Watch",
+      "defect_sla_status": "Watch",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-10",
+    "_note": "Probationary | High risk | Re-qual — multiple Watch SLAs, 0 breaches, 3 risks",
+    "intake": {
+      "supplier_name": "Orion Industries",
+      "supplier_country": "Turkey",
+      "supplier_contact_name": "Mehmet Yilmaz",
+      "supplier_contact_title": "General Manager",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000010",
+      "certifications_held": ["ISO 9001:2015"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Re-qualification",
+      "previous_verdict": "Conditional",
+      "previous_composite_score": 3.20,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 3, "notes": ""},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 2, "notes": "Declined"},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 3, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 3, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 3, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 3, "notes": ""}
+      ],
+      "otd_rate_pct": 86.0,
+      "defect_rate_pct": 2.9,
+      "invoice_accuracy_pct": 91.0,
+      "open_ncr_count": 4,
+      "ncr_avg_close_days": 20.0,
+      "prev_otd_rate_pct": 88.0,
+      "prev_defect_rate_pct": 2.4,
+      "prev_invoice_accuracy_pct": 93.0,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Geopolitical / country risk",
+          "risk_item": "Regional instability affecting logistics routes",
+          "likelihood": 4,
+          "impact": 4,
+          "owner": "Procurement",
+          "mitigation": "Dual routing agreements with freight forwarders"
+        },
+        {
+          "risk_category": "Currency / FX exposure",
+          "risk_item": "TRY/EUR exchange rate volatility",
+          "likelihood": 3,
+          "impact": 3,
+          "owner": "Finance",
+          "mitigation": "FX hedging on 6-month contracts"
+        },
+        {
+          "risk_category": "Capacity constraint",
+          "risk_item": "Limited machining capacity due to equipment age",
+          "likelihood": 2,
+          "impact": 2,
+          "owner": "Operations",
+          "mitigation": "CapEx for press upgrade approved"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Develop OTD improvement plan with logistics partner",
+          "owner": "Operations Manager",
+          "due_date": "2026-07-01",
+          "status": "Open"
+        },
+        {
+          "car_id": "CAR-002",
+          "action_item": "Reduce average NCR close time to target",
+          "owner": "Quality Manager",
+          "due_date": "2026-08-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 2.75,
+      "qualification_verdict": "Probationary",
+      "overall_risk_tier": "High",
+      "otd_sla_status": "Watch",
+      "defect_sla_status": "Watch",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-11",
+    "_note": "Probationary | High risk | For-cause — breach-level performance but score not yet Rejected; breach_count=5, overdue_car_count=1",
+    "intake": {
+      "supplier_name": "Crestline Assembly de Mexico",
+      "supplier_country": "Mexico",
+      "supplier_contact_name": "Carlos Mendez",
+      "supplier_contact_title": "Plant Director",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000011",
+      "certifications_held": ["ISO 9001:2015"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "For-cause review",
+      "previous_verdict": null,
+      "previous_composite_score": null,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 3, "notes": "Systemic gaps"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 2, "notes": "Poor"},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 3, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 3, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 2, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 2, "notes": ""}
+      ],
+      "otd_rate_pct": 83.0,
+      "defect_rate_pct": 3.5,
+      "invoice_accuracy_pct": 89.0,
+      "open_ncr_count": 5,
+      "ncr_avg_close_days": 22.0,
+      "prev_otd_rate_pct": null,
+      "prev_defect_rate_pct": null,
+      "prev_invoice_accuracy_pct": null,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Quality capability gap",
+          "risk_item": "Inadequate process controls on critical operations",
+          "likelihood": 5,
+          "impact": 4,
+          "owner": "Quality",
+          "mitigation": "Third-party quality resident engineer engaged"
+        },
+        {
+          "risk_category": "Capacity constraint",
+          "risk_item": "Understaffed production floor affecting output quality",
+          "likelihood": 4,
+          "impact": 3,
+          "owner": "Operations",
+          "mitigation": "Recruitment drive launched"
+        },
+        {
+          "risk_category": "Regulatory / compliance",
+          "risk_item": "Environmental permit renewal overdue",
+          "likelihood": 3,
+          "impact": 3,
+          "owner": "EHS Manager",
+          "mitigation": "Renewal application submitted"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Implement statistical process control on CNC line",
+          "owner": "Quality Manager",
+          "due_date": "2026-02-01",
+          "status": "Overdue"
+        },
+        {
+          "car_id": "CAR-002",
+          "action_item": "Hire 5 additional production operators",
+          "owner": "HR Director",
+          "due_date": "2026-07-01",
+          "status": "Open"
+        },
+        {
+          "car_id": "CAR-003",
+          "action_item": "Complete environmental permit renewal",
+          "owner": "EHS Manager",
+          "due_date": "2026-08-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 2.60,
+      "qualification_verdict": "Probationary",
+      "overall_risk_tier": "High",
+      "otd_sla_status": "Breach",
+      "defect_sla_status": "Breach",
+      "breach_count": 5,
+      "overdue_car_count": 1
+    }
+  },
+  {
+    "id": "case-12",
+    "_note": "Probationary | Medium risk | Initial — weak first assessment",
+    "intake": {
+      "supplier_name": "Summit Materials Inc",
+      "supplier_country": "Canada",
+      "supplier_contact_name": "David Thompson",
+      "supplier_contact_title": "Quality Manager",
+      "commodity_category": "Raw materials — metals",
+      "duns_number": "100000012",
+      "certifications_held": ["ISO 9001:2015"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Initial qualification",
+      "previous_verdict": null,
+      "previous_composite_score": null,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 2, "notes": "Significant gaps"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 3, "notes": ""},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 3, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 3, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 3, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 3, "notes": ""}
+      ],
+      "otd_rate_pct": 87.0,
+      "defect_rate_pct": 2.5,
+      "invoice_accuracy_pct": 92.0,
+      "open_ncr_count": 3,
+      "ncr_avg_close_days": 18.0,
+      "prev_otd_rate_pct": null,
+      "prev_defect_rate_pct": null,
+      "prev_invoice_accuracy_pct": null,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Quality capability gap",
+          "risk_item": "No established quality management system certification",
+          "likelihood": 3,
+          "impact": 3,
+          "owner": "Quality",
+          "mitigation": "ISO 9001 certification programme initiated"
+        },
+        {
+          "risk_category": "Financial instability",
+          "risk_item": "Recent ownership change — financial stability unclear",
+          "likelihood": 2,
+          "impact": 2,
+          "owner": "Finance",
+          "mitigation": "Credit check and Dun & Bradstreet report obtained"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Complete ISO 9001 gap analysis and corrective action plan",
+          "owner": "Quality Director",
+          "due_date": "2026-07-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 2.75,
+      "qualification_verdict": "Probationary",
+      "overall_risk_tier": "Medium",
+      "otd_sla_status": "Watch",
+      "defect_sla_status": "Watch",
+      "breach_count": 0,
+      "overdue_car_count": 0
+    }
+  },
+  {
+    "id": "case-13",
+    "_note": "Rejected | High risk | For-cause — breach+low score; breach_count=5, overdue_car_count=2",
+    "intake": {
+      "supplier_name": "Frontier Works Ltda",
+      "supplier_country": "Brazil",
+      "supplier_contact_name": "Paulo Oliveira",
+      "supplier_contact_title": "CEO",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000013",
+      "certifications_held": [],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "For-cause review",
+      "previous_verdict": null,
+      "previous_composite_score": null,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 1, "notes": "No QMS in place"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 2, "notes": "Chronic delays"},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 2, "notes": "At risk"},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 2, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 2, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 2, "notes": ""}
+      ],
+      "otd_rate_pct": 80.0,
+      "defect_rate_pct": 4.0,
+      "invoice_accuracy_pct": 87.0,
+      "open_ncr_count": 6,
+      "ncr_avg_close_days": 25.0,
+      "prev_otd_rate_pct": null,
+      "prev_defect_rate_pct": null,
+      "prev_invoice_accuracy_pct": null,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Quality capability gap",
+          "risk_item": "Complete absence of quality management system",
+          "likelihood": 5,
+          "impact": 5,
+          "owner": "Quality",
+          "mitigation": "None — pre-condition for re-qualification"
+        },
+        {
+          "risk_category": "Financial instability",
+          "risk_item": "Debt restructuring in progress",
+          "likelihood": 4,
+          "impact": 4,
+          "owner": "Finance",
+          "mitigation": "Legal review of supply continuity provisions"
+        },
+        {
+          "risk_category": "Regulatory / compliance",
+          "risk_item": "Environmental violation notices outstanding",
+          "likelihood": 3,
+          "impact": 3,
+          "owner": "Legal",
+          "mitigation": "Awaiting regulatory decision"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Implement basic quality management procedures",
+          "owner": "Quality Manager",
+          "due_date": "2026-02-01",
+          "status": "Overdue"
+        },
+        {
+          "car_id": "CAR-002",
+          "action_item": "Resolve outstanding NCRs",
+          "owner": "Operations Director",
+          "due_date": "2026-03-01",
+          "status": "Overdue"
+        },
+        {
+          "car_id": "CAR-003",
+          "action_item": "Submit ISO 9001 registration application",
+          "owner": "Quality Director",
+          "due_date": "2026-09-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 1.75,
+      "qualification_verdict": "Rejected",
+      "overall_risk_tier": "High",
+      "otd_sla_status": "Breach",
+      "defect_sla_status": "Breach",
+      "breach_count": 5,
+      "overdue_car_count": 2
+    }
+  },
+  {
+    "id": "case-14",
+    "_note": "Rejected | High risk | Re-qual — persistent non-conformances; overdue_car_count=3",
+    "intake": {
+      "supplier_name": "Cascade Components Pvt Ltd",
+      "supplier_country": "India",
+      "supplier_contact_name": "Rajesh Sharma",
+      "supplier_contact_title": "Managing Director",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000014",
+      "certifications_held": ["ISO 9001:2015"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Re-qualification",
+      "previous_verdict": "Probationary",
+      "previous_composite_score": 2.60,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 1, "notes": "Deteriorated further"},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 1, "notes": ""},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 2, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 2, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 1, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 2, "notes": ""}
+      ],
+      "otd_rate_pct": 75.0,
+      "defect_rate_pct": 5.0,
+      "invoice_accuracy_pct": 85.0,
+      "open_ncr_count": 8,
+      "ncr_avg_close_days": 30.0,
+      "prev_otd_rate_pct": 82.0,
+      "prev_defect_rate_pct": 3.8,
+      "prev_invoice_accuracy_pct": 88.0,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Quality capability gap",
+          "risk_item": "Loss of key quality personnel; systemic process breakdown",
+          "likelihood": 5,
+          "impact": 5,
+          "owner": "Quality",
+          "mitigation": "None currently viable"
+        },
+        {
+          "risk_category": "Financial instability",
+          "risk_item": "Delayed payments to sub-tier suppliers",
+          "likelihood": 4,
+          "impact": 3,
+          "owner": "Finance",
+          "mitigation": "Credit review initiated"
+        },
+        {
+          "risk_category": "Regulatory / compliance",
+          "risk_item": "Lapsed ISO 9001 certification",
+          "likelihood": 4,
+          "impact": 4,
+          "owner": "Quality",
+          "mitigation": "Recertification audit not yet scheduled"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Re-establish quality management system",
+          "owner": "Quality Director",
+          "due_date": "2026-01-01",
+          "status": "Overdue"
+        },
+        {
+          "car_id": "CAR-002",
+          "action_item": "Close all outstanding NCRs",
+          "owner": "Quality Manager",
+          "due_date": "2026-02-01",
+          "status": "Overdue"
+        },
+        {
+          "car_id": "CAR-003",
+          "action_item": "Reinstate OTD performance metrics reporting",
+          "owner": "Operations Director",
+          "due_date": "2026-03-01",
+          "status": "Overdue"
+        },
+        {
+          "car_id": "CAR-004",
+          "action_item": "Schedule ISO 9001 recertification audit",
+          "owner": "Quality Director",
+          "due_date": "2026-09-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 1.40,
+      "qualification_verdict": "Rejected",
+      "overall_risk_tier": "High",
+      "otd_sla_status": "Breach",
+      "defect_sla_status": "Breach",
+      "breach_count": 5,
+      "overdue_car_count": 3
+    }
+  },
+  {
+    "id": "case-15",
+    "_note": "Conditional | Medium risk | Re-qual — OTD breach (<85%), Conditional verdict; breach_count=1",
+    "intake": {
+      "supplier_name": "Atlantic Machining SA",
+      "supplier_country": "Spain",
+      "supplier_contact_name": "Isabel Fernandez",
+      "supplier_contact_title": "Quality Manager",
+      "commodity_category": "Precision machined components",
+      "duns_number": "100000015",
+      "certifications_held": ["ISO 9001:2015", "IATF 16949"],
+      "review_period": "Q1 2026",
+      "evaluator_name": "Jane Smith",
+      "qualification_type": "Re-qualification",
+      "previous_verdict": "Preferred",
+      "previous_composite_score": 4.10,
+      "audit_scores": [
+        {"criterion": "Quality management system",          "weight": 0.25, "score": 4, "notes": ""},
+        {"criterion": "On-time delivery history",           "weight": 0.25, "score": 3, "notes": "OTD issue"},
+        {"criterion": "Financial stability",                "weight": 0.20, "score": 3, "notes": ""},
+        {"criterion": "Technical / engineering capability", "weight": 0.15, "score": 4, "notes": ""},
+        {"criterion": "Corrective action responsiveness",   "weight": 0.10, "score": 4, "notes": ""},
+        {"criterion": "Sustainability & compliance",        "weight": 0.05, "score": 4, "notes": ""}
+      ],
+      "otd_rate_pct": 83.0,
+      "defect_rate_pct": 1.4,
+      "invoice_accuracy_pct": 97.0,
+      "open_ncr_count": 2,
+      "ncr_avg_close_days": 13.0,
+      "prev_otd_rate_pct": 91.0,
+      "prev_defect_rate_pct": 1.1,
+      "prev_invoice_accuracy_pct": 98.0,
+      "otd_pass_target": null,
+      "defect_pass_target": null,
+      "invoice_pass_target": null,
+      "ncr_count_pass_target": null,
+      "ncr_close_pass_target": null,
+      "risk_register": [
+        {
+          "risk_category": "Lead time variability",
+          "risk_item": "Logistics disruption affecting raw material lead times",
+          "likelihood": 3,
+          "impact": 3,
+          "owner": "Procurement",
+          "mitigation": "Dual carrier agreements in place"
+        },
+        {
+          "risk_category": "Capacity constraint",
+          "risk_item": "Limited shift capacity in peak periods",
+          "likelihood": 2,
+          "impact": 2,
+          "owner": "Operations",
+          "mitigation": "Overtime authorisation in place"
+        }
+      ],
+      "corrective_actions": [
+        {
+          "car_id": "CAR-001",
+          "action_item": "Develop and implement OTD recovery plan",
+          "owner": "Logistics Manager",
+          "due_date": "2026-07-01",
+          "status": "Open"
+        }
+      ]
+    },
+    "expected": {
+      "composite_score": 3.55,
+      "qualification_verdict": "Conditional",
+      "overall_risk_tier": "Medium",
+      "otd_sla_status": "Breach",
+      "defect_sla_status": "Pass",
+      "breach_count": 1,
+      "overdue_car_count": 0
+    }
+  }
+]

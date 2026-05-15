@@ -228,12 +228,20 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ## Module 7: Eval Framework
 
-- [ ] Design synthetic SQR test set (all 3 verdict outcomes, all risk tiers, validation edge cases)
-- [ ] Generate test set (minimum 15 cases, stored as JSON in `eval/test_sets/`)
-- [ ] Implement `eval/field_accuracy.py` (deterministic fields: exact match; narrative_llm fields: LLM judge scoring)
-- [ ] Implement `eval/time_to_approval.py` (regeneration count + edit count per field before approval)
+- [x] Design synthetic SQR test set (all 4 verdict outcomes, all 3 risk tiers, edge cases)
+- [x] Generate test set — 15 cases in `eval/test_sets/sqr_cases.json`
+- [x] Implement `eval/field_accuracy.py` — deterministic exact-match + validation warnings check + LLM judge (groundedness threshold 3.5 → exit 1) + per-case timing
+- [x] Implement `eval/time_to_approval.py` — audit_log regen/edit counts per field
+- [x] Implement `eval/compare_runs.py` — prompt regression diff utility (NEW vs original plan)
+- [x] Frontend fix: failed-status fields now show edit input in ReportReview (backend already supported it; UI was blocking it)
 - [ ] Run baseline eval and store results in `eval/results/`
 - [ ] Document baseline scores and prompt iteration notes
+
+**Baseline run (T5 — to be executed):**
+1. `python eval/field_accuracy.py --skip-llm`  → deterministic pass rate ≥ 90% required
+2. `python eval/field_accuracy.py`              → mean groundedness ≥ 3.5 required
+3. `python eval/time_to_approval.py --report-id <UUID>`  → any exported SQR report
+4. Update this file with baseline scores
 
 ---
 

@@ -187,7 +187,7 @@ function FieldRow({
       )}
 
       {!field.value && field.status === 'failed' && (
-        <p className="mt-1 text-[11px] text-red-500">Generation failed — click to regenerate</p>
+        <p className="mt-1 text-[11px] text-red-500">Generation failed — regenerate or fill manually</p>
       )}
     </div>
   )
@@ -220,9 +220,8 @@ function FieldPanel({
 }) {
   const isEditing = editingId === field.field_id
   const isTable = parseStructuredValue(field.value) !== null
-  const isLocked = ['failed', 'pending', 'generating'].includes(field.status)
-  const canApprove = !isLocked
-  const canEdit = !isLocked && !isTable
+  const canApprove = !['failed', 'pending', 'generating'].includes(field.status)
+  const canEdit = !['pending', 'generating'].includes(field.status) && !isTable
   const canRegenerate = field.status !== 'pending'
   const modelLabel =
     field.strategy === 'narrative_llm'
