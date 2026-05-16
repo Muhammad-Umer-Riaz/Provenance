@@ -52,3 +52,6 @@ screen-*.png
 
 # UI design assets (local reference only)
 UI Designs from Claude Code/
+
+# Private positioning / planning docs — never commit
+hereisadraftcompiledcurry.md
