@@ -374,13 +374,15 @@ The edit session autosaves to the existing backend record (not a new one) via th
 
 **Why:**
 
-Chrome's transient user-activation token expires approximately one second after a user gesture. The export flow requires three `await` calls before the download can be initiated — `supabase.auth.getSession()`, `fetch()` (which blocks for several seconds while Playwright generates the PDF), and `res.blob()`. By the time `a.click()` is called, the activation token has expired. Without it, Chrome ignores the `download` attribute on the anchor, treats the click as a navigation to the blob URL, and records a UUID-named phantom entry in `chrome://downloads` without writing any file to disk.
+Chrome's transient user-activation token expires approximately one second after a user gesture. The export flow requires three `await` calls before the download can be initiated — `supabase.auth.getSession()`, `fetch()` (which blocks for several seconds while Playwright generates the PDF), and `res.blob()`. By the time `a.click()` is called, the activation token has expired. Without it, Chrome ignores the `download` attribute on the anchor, treats the click as a navigation to the blob URL, and records a UUID-named phantom entry in `chrome://downloads` without writing any file to disk. Confirmed on Chrome 124+.
 
 `showSaveFilePicker` is called as the first operation in `exportReport()`, before any `await`, so the activation token is still valid. Chrome shows a native OS save dialog; the user confirms a save location; then the backend fetch and file write proceed. The file system write goes through `FileSystemWritableFileStream`, which does not require user activation.
 
 The blob URL path is retained as a fallback for Firefox and Safari, where the user-gesture restriction on `download` attribute does not apply and the existing approach works correctly.
 
-**Trade-off:** The primary path changes the UX: instead of the file landing silently in the Downloads folder, Chrome shows a native save dialog and the user must confirm a location. This is a deliberate trade-off — the alternative is a broken download. The dialog also makes the save location explicit, which is arguably better UX for a document with a specific filename and format. The fallback path (Firefox/Safari) retains the silent-download behaviour.
+**Trade-off:** The primary path changes the UX: instead of the file landing silently in the Downloads folder, Chrome shows a native save dialog and the user must confirm a location. This is a deliberate trade-off — the alternative is a broken download with UUID filenames. The dialog also makes the save location explicit.
+
+**Note on Playwright-controlled Chrome:** `navigator.webdriver` is hidden by Playwright (set to `false`), so automated browser detection is not possible. In a Playwright Chrome tab, `showSaveFilePicker` opens a native OS dialog that is not visible to the user and the Promise stalls. To test exports manually, use a normal browser tab at `localhost:5173` — do not use the Playwright-controlled tab.
 
 ---
 

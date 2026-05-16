@@ -465,7 +465,10 @@ export function ReportReview() {
   // ── Load ─────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!id) return
-    let channel: ReturnType<typeof subscribeToReportFields> | null = null
+
+    // Subscribe before fetching — any Realtime events fired during the API call are captured,
+    // preventing the partial-field-count issue when generation completes just as the page loads.
+    const channel = subscribeToReportFields(id, (updated) => upsertField(updated))
 
     async function load() {
       try {
@@ -481,8 +484,7 @@ export function ReportReview() {
     }
 
     load()
-    channel = subscribeToReportFields(id, (updated) => upsertField(updated))
-    return () => { channel?.unsubscribe() }
+    return () => { channel.unsubscribe() }
   }, [id])
 
   // ── Handlers ─────────────────────────────────────────────────────────────────

@@ -112,7 +112,7 @@ export async function exportReport(
       })
     } catch (err) {
       if ((err as DOMException).name === 'AbortError') return
-      throw err
+      // Any other error (e.g. SecurityError in automated browsers) — fall through to blob download
     }
   }
 
@@ -134,7 +134,7 @@ export async function exportReport(
     return
   }
 
-  // Fallback for browsers without File System Access API (Firefox, Safari)
+  // Fallback: Firefox, Safari, or browsers where showSaveFilePicker is unavailable
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
