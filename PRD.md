@@ -41,7 +41,8 @@ The demo template is a **Supplier Qualification Report (SQR)** — a procurement
 - ✅ Validation rules engine (runs template-defined validation_rules post-generation)
 - ✅ PDF + DOCX + JSON export with approval gating
 - ✅ Eval framework (field-level accuracy + time-to-approval metrics)
-- ✅ 2 additional skeleton templates (NCR, Site Acceptance Test) — proves engine generalises
+- ✅ SAT (Site Acceptance Test) full production template — SPLIT table pattern + v1 image-annotation pattern
+- ✅ NCR skeleton card on Templates page — strategy assignments documented, full build deferred to v2
 - ✅ Supabase Auth + Row-Level Security on all tables
 - ✅ LangSmith tracing on every field operation
 - ✅ EC2 deployment (Docker Compose + Nginx + HTTPS)
@@ -144,17 +145,33 @@ The demo template is a **Supplier Qualification Report (SQR)** — a procurement
 
 ---
 
-## Module 8: Additional Templates
+## Module 7.1: Review UI Overhaul
 
-**Build:** NCR (Non-Conformance Report) YAML template skeleton with field-level strategy assignments (different `classifier` chain: defect severity → escalation path), Site Acceptance Test (SAT) YAML template skeleton (demonstrates `calculator` fields for test pass/fail thresholds), `docs/template-authoring.md` guide explaining the YAML schema, strategy selection decision rules, and lookup dictionary structure
+**Build:** All 6 SQR validation rules rewritten in valid simpleeval Python (prior DSL was never evaluated correctly), `validator.py` injecting `today` ISO string into evaluator context (required for overdue CAR date rule), step ribbon on generate and review pages (Intake ✓ → Generate → Review), Report / Validation tab bar in centre pane, Validation tab showing issues grouped by severity with collapsible passed-checks section, `POST /revalidate` endpoint for re-running validation rules against stored field values without full report regeneration, left-pane warnings block removed (consolidated into Validation tab)
 
-**Architectural concept demonstrated:** Engine generalisation — three templates with different field mixes and different `classifier` chains prove this is a platform, not a single-purpose SQR tool. The YAML authoring guide is the handoff artefact: an engineer who understands the strategy taxonomy can build a new report template without modifying any Python code.
+**Architectural concept demonstrated:** Surfacing validation results as a first-class workflow step. Validation failures are co-located with the draft content they apply to, grouped by severity, and actionable from the same UI the reviewer is already using — rather than being a sidebar annotation that competes with the report content for attention.
 
 ---
 
-## Module 9: Production Deployment & Polish
+## Module 8: LLM Narrative Quality
 
-**Build:** Dockerfile for FastAPI backend, React production build → S3 bucket → CloudFront distribution (HTTPS, global CDN), EC2 t3.small (Docker Compose + Nginx reverse proxy + HTTPS via Certbot), GitHub Actions CI/CD pipeline (push to main → build Docker image → push to ECR → SSH deploy to EC2), rate limiting middleware (slowapi — per-IP limits on generate and export endpoints), README.md, DECISIONS.md fully populated, demo report walkthrough recorded
+**Build:** Baseline eval run establishing per-field groundedness scores (mean 3.17; `scorecard_summary` 2.0, `risk_narrative` 2.2 identified as weak spots), v1.1 prompt rewrites for `scorecard_summary` (per-criterion row anchoring), `risk_narrative` (explicit likelihood/impact inputs + mitigation-faithfulness constraint), `car_summary` (individual CAR row feeding), `recommendation` (boilerplate injection removed), full eval re-run confirming mean groundedness 3.97 (threshold 3.5 — pass), per-field history and before/after comparison documented in `eval/PROMPT_HISTORY.md` and `eval/BASELINE.md`
+
+**Architectural concept demonstrated:** Prompt iteration as a disciplined engineering process. Each change is motivated by a specific measurable failure (groundedness score below threshold on a named field), scoped to that field only, and re-evaluated quantitatively. This is the difference between "I tweaked the prompt until it felt better" and a repeatable, auditable improvement methodology — which is the same rigour applied to the deterministic fields via the eval framework.
+
+---
+
+## Module 9: Additional Templates
+
+**Build:** `templates/site-acceptance-test.yaml` — full production-ready template with 6 sections, 5 `narrative_llm` fields (complete prompts + exemplars), 3 lookup sources, 4 validation rules; SPLIT table pattern (`test_results` extractor → `within_spec` computed column → `pass_count`/`fail_count` calculators → `test_verdict` classifier → `results_narrative` analytical paragraph); v1 image-annotation pattern (structured numeric fields + `engineer_observation` prose → `measurement_narrative` synthesis); `.agents/plans/9.sat-template.md` — 12-section engineering spec covering strategy mix comparison, section-by-section rationale, 7 synthetic eval test case designs, prompt iteration notes, and v2 image upload design; Templates page skeleton card copy updated for both SAT and NCR
+
+**Architectural concept demonstrated:** Engine generalisation across domains. SAT uses a simpler classifier chain than SQR (integer `fail_count` → Pass/Conditional/Fail vs float `composite_score` → four-tier verdict), a different data backbone (parametric test results table vs weighted audit scorecard), and introduces the image-annotation pattern. Two full production templates with different strategy mixes and different domain vocabularies — both driven by the same YAML engine with no code changes — prove the platform thesis.
+
+---
+
+## Module 10: Production Deployment & Polish
+
+**Build:** Dockerfile for FastAPI backend, React production build → S3 bucket → CloudFront distribution (HTTPS, global CDN), EC2 t3.small (Docker Compose + Nginx reverse proxy + HTTPS via Certbot), GitHub Actions CI/CD pipeline (push to main → build Docker image → push to ECR → SSH deploy to EC2), rate limiting middleware (slowapi — per-IP limits on generate and export endpoints), README.md, demo report walkthrough recorded
 
 **Architectural concept demonstrated:** Infrastructure as code — the entire production environment is described in two files (`docker-compose.yml` + Dockerfiles), version-controlled alongside the application code, and readable by any engineer without hidden platform configuration. The deployment pattern mirrors DocChat intentionally: cognitive efficiency from reusing known infrastructure; the engineering effort stays in the application layer, not the ops layer.
 
@@ -162,13 +179,13 @@ The demo template is a **Supplier Qualification Report (SQR)** — a procurement
 
 ## Success Criteria
 
-By the end of Module 9, the following must be true:
+By the end of Module 10, the following must be true:
 
 - ✅ End-to-end SQR flow working: intake form → async generation → review UI → PDF/DOCX/JSON export
 - ✅ All 7 active v1 strategies implemented, traced in LangSmith, and covered by eval
 - ✅ Audit log captures every field event; export gate enforces full approval
-- ✅ Eval baseline run complete; `narrative_llm` field scores documented in `eval/results/`
-- ✅ 3 templates in repo (SQR full + NCR skeleton + SAT skeleton)
-- ✅ Application deployed on EC2 and publicly accessible via HTTPS
+- ✅ Eval baseline run complete; `narrative_llm` field groundedness ≥ 3.5 mean, documented in `eval/results/`
+- ✅ 2 full templates + 1 skeleton in repo (SQR full + SAT full + NCR skeleton)
 - ✅ DECISIONS.md captures all architectural choices with rationale
-- ✅ README.md presents the project as an engineering decision process, not a feature list
+- [ ] Application deployed on EC2 and publicly accessible via HTTPS
+- [ ] README.md presents the project as an engineering decision process, not a feature list
