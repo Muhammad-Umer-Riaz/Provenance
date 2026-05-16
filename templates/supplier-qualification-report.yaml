@@ -352,20 +352,27 @@ sections:
         strategy: narrative_llm
         prompt: |
           Write a 2–3 sentence scorecard summary paragraph.
-          Composite score: {{composite_score}} / 5.00
-          Verdict: {{qualification_verdict}}
-          Points to next tier: {{points_to_next_tier}} (0 if already Preferred)
-          Points above current tier floor: {{points_above_floor}}
-          Lowest-scoring criterion: {{lowest_criterion_name}} at {{lowest_criterion_score}}/5
-          Evaluator note on lowest criterion: {{lowest_criterion_note}} (omit if blank)
-          Previous composite score: {{previous_composite_score}} (omit if blank; if present, note whether score improved, declined, or held stable)
+          Composite score: {{composite_score}} / 5.00 — Verdict: {{qualification_verdict}}
+          Points above tier floor: {{points_above_floor}} · Points to next tier: {{points_to_next_tier}}
+          Previous composite score: {{previous_composite_score}} (omit if blank; note improved/declined/stable)
+
+          Audit scorecard — cite specific criterion names and their scores in the narrative:
+          1. {{scorecard_table[0].criterion}}: score {{scorecard_table[0].score}}/5, weight {{scorecard_table[0].weight}}, weighted {{scorecard_table[0].weighted_score}}
+          2. {{scorecard_table[1].criterion}}: score {{scorecard_table[1].score}}/5, weight {{scorecard_table[1].weight}}, weighted {{scorecard_table[1].weighted_score}}
+          3. {{scorecard_table[2].criterion}}: score {{scorecard_table[2].score}}/5, weight {{scorecard_table[2].weight}}, weighted {{scorecard_table[2].weighted_score}}
+          4. {{scorecard_table[3].criterion}}: score {{scorecard_table[3].score}}/5, weight {{scorecard_table[3].weight}}, weighted {{scorecard_table[3].weighted_score}}
+          5. {{scorecard_table[4].criterion}}: score {{scorecard_table[4].score}}/5, weight {{scorecard_table[4].weight}}, weighted {{scorecard_table[4].weighted_score}}
+          6. {{scorecard_table[5].criterion}}: score {{scorecard_table[5].score}}/5, weight {{scorecard_table[5].weight}}, weighted {{scorecard_table[5].weighted_score}}
+
+          Lowest: {{lowest_criterion_name}} at {{lowest_criterion_score}}/5
+          Evaluator note on lowest: {{lowest_criterion_note}} (omit this line if blank)
+          Rules: Reference criterion names from the table above. Do not invent scores or weights not listed. Do not repeat the verdict word verbatim in the first sentence.
           Style: factual, third-person, professional procurement language.
-          Do not repeat the verdict word verbatim in the first sentence.
         exemplars:
-          - "The supplier achieved a composite score of X.XX, demonstrating [strength areas].
-             The primary area for improvement is [lowest criterion], which [brief reason].
-             [Verdict sentence with margin context, e.g. 0.20 points from Preferred threshold]."
-        max_tokens: 150
+          - "The supplier achieved a composite score of X.XX, with strongest performance in [high-weight criterion at score/5] and a gap in [lowest_criterion_name] at [score]/5.
+             [Sentence on margin or trend if previous_composite_score present].
+             [Verdict sentence with points-above-floor context]."
+        max_tokens: 180
 
   - id: performance
     title: "Delivery & Quality Performance"
@@ -520,13 +527,15 @@ sections:
           Write a 2–3 sentence risk narrative.
           Overall risk tier: {{overall_risk_tier}}
           Top risks by priority score (sorted highest first):
-          1. [{{risk_register[0].risk_category}}] {{risk_register[0].risk_item}} — priority {{risk_register[0].priority_score}}
-             Mitigation: {{risk_register[0].mitigation}}
-          2. [{{second_risk_category}}] {{second_risk_item}} — priority {{second_risk_priority}}
-             Mitigation: {{second_risk_mitigation}}
-          If Risk 2 is "No additional risks identified" or its category is blank, discuss only Risk 1.
-          Lead with the risk category to frame the type of exposure (e.g. "a single-source dependency risk",
-          "a geopolitical risk"). Then name the specific risk description and state the mitigation approach.
+          Risk 1: [{{risk_register[0].risk_category}}] {{risk_register[0].risk_item}}
+            Likelihood {{risk_register[0].likelihood}} x impact {{risk_register[0].impact}} = priority {{risk_register[0].priority_score}}
+            Mitigation: {{risk_register[0].mitigation}}
+          Risk 2: [{{second_risk_category}}] {{second_risk_item}} — priority {{second_risk_priority}}
+            Mitigation: {{second_risk_mitigation}}
+          (Omit Risk 2 if second_risk_category is blank or second_risk_item is "No additional risks identified")
+          Lead with the risk category to frame the type of exposure for Risk 1 (e.g. "a single-source dependency risk", "a geopolitical risk").
+          State the specific risk item and report the mitigation text exactly as written above — do not add consequences, timelines, or supply impacts not stated in the mitigation field.
+          If Risk 2 is present, name it in the final sentence with its priority score.
           Style: factual, risk-management register language.
         max_tokens: 150
 
@@ -569,14 +578,19 @@ sections:
         strategy: narrative_llm
         prompt: |
           Write a 2–3 sentence CAR summary paragraph.
-          Open CAR count: {{count(corrective_actions, status='Open')}}
-          Overdue CAR count: {{overdue_car_count}}
-          Total CARs: {{count(corrective_actions)}}
-          Earliest due date: {{min(corrective_actions[*].due_date)}}
-          If verdict is Conditional or Probationary, name the conditions that are CAR-gated.
-          If overdue_car_count > 0, note that overdue items represent missed commitments and require escalation.
           Verdict: {{qualification_verdict}}
-        max_tokens: 150
+          Total CARs: {{count(corrective_actions)}} · Open: {{count(corrective_actions, status='Open')}} · Overdue: {{overdue_car_count}}
+          Earliest due date: {{min(corrective_actions[*].due_date)}}
+
+          CAR details — reference specific CAR IDs and action items in the narrative:
+          CAR-1: {{corrective_actions[0].car_id}} — {{corrective_actions[0].action_item}} (owner: {{corrective_actions[0].owner}}, due: {{corrective_actions[0].due_date}}, status: {{corrective_actions[0].status}})
+          CAR-2: {{corrective_actions[1].car_id}} — {{corrective_actions[1].action_item}} (owner: {{corrective_actions[1].owner}}, due: {{corrective_actions[1].due_date}}, status: {{corrective_actions[1].status}})
+          CAR-3: {{corrective_actions[2].car_id}} — {{corrective_actions[2].action_item}} (owner: {{corrective_actions[2].owner}}, due: {{corrective_actions[2].due_date}}, status: {{corrective_actions[2].status}})
+          (Skip any CAR line where the ID shows "—" — it means fewer than that many CARs exist)
+          If overdue_car_count > 0, name the specific overdue CAR(s) by ID and state they require immediate escalation.
+          If verdict is Conditional or Probationary, note that closure of open CARs is required to maintain status.
+          Do not state dates or counts not shown above.
+        max_tokens: 160
         condition: "count(corrective_actions) > 0"
 
       - id: car_followup
@@ -628,7 +642,6 @@ sections:
           Verdict: {{qualification_verdict}}
           Previous verdict: {{previous_verdict}} (omit if blank)
           Open CARs: {{count(corrective_actions, status='Open')}}
-          Conditions (if any): {{approval_conditions_blocks[qualification_verdict]}}
           Overall risk tier: {{overall_risk_tier}}
           Action guidance by verdict tier:
             Preferred → maintain as preferred/strategic source, schedule 12-month review

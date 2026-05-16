@@ -112,7 +112,7 @@ Multimodal LLM calls on uploaded images are expensive, add latency, and introduc
 
 A visual template editor is a significant engineering effort that would consume the development budget needed for the generation engine, review UI, and eval framework — the actual differentiators of this project. The target user for Provenance v1 is an engineer comfortable editing YAML in an IDE. YAML-only keeps scope tractable and forces the template schema to be well-defined — a prerequisite for any future visual editor.
 
-**Trade-off:** Engineers must understand the YAML schema and strategy vocabulary to author new templates. This is addressed by the template authoring guide in Module 8. A visual editor is the natural v2 extension once the schema is stable and validated across multiple templates.
+**Trade-off:** Engineers must understand the YAML schema and strategy vocabulary to author new templates. This is addressed by the template authoring guide in Module 9. A visual editor is the natural v2 extension once the schema is stable and validated across multiple templates.
 
 ---
 
@@ -180,9 +180,9 @@ The SQR domain is universal across manufacturing, engineering, and operations co
 
 **Why:**
 
-A single-template system is indistinguishable from a purpose-built SQR tool. Three templates — even if only SQR gets full polish — prove the engine is a general-purpose platform. The two additional skeletons demonstrate different strategy mixes without requiring the full engineering budget of a second fully-polished template: the NCR template uses a different `classifier` chain (defect severity → escalation path); the SAT template demonstrates `calculator` fields for test pass/fail thresholds. The YAML authoring guide in Module 8 is the handoff artefact that makes this claim credible.
+A single-template system is indistinguishable from a purpose-built SQR tool. Three templates — even if only SQR gets full polish — prove the engine is a general-purpose platform. The two additional skeletons demonstrate different strategy mixes without requiring the full engineering budget of a second fully-polished template: the NCR template uses a different `classifier` chain (defect severity → escalation path); the SAT template demonstrates `calculator` fields for test pass/fail thresholds. The YAML authoring guide in Module 9 is the handoff artefact that makes this claim credible.
 
-**Trade-off:** Writing and validating two additional YAML skeletons adds scope to Module 8. This is deliberately limited to skeleton templates (not full narrative prompts and lookup dictionaries) to keep the scope tractable.
+**Trade-off:** Writing and validating two additional YAML skeletons adds scope to Module 9. This is deliberately limited to skeleton templates (not full narrative prompts and lookup dictionaries) to keep the scope tractable.
 
 ---
 
@@ -379,4 +379,86 @@ Chrome's transient user-activation token expires approximately one second after 
 The blob URL path is retained as a fallback for Firefox and Safari, where the user-gesture restriction on `download` attribute does not apply and the existing approach works correctly.
 
 **Trade-off:** The primary path changes the UX: instead of the file landing silently in the Downloads folder, Chrome shows a native save dialog and the user must confirm a location. This is a deliberate trade-off — the alternative is a broken download. The dialog also makes the save location explicit, which is arguably better UX for a document with a specific filename and format. The fallback path (Firefox/Safari) retains the silent-download behaviour.
+
+---
+
+## 26. Validation Context: Intake Lists + Simpleeval Builtins
+
+**Problem discovered (15 May 2026):** Post-release Playwright stress test showed all 6 validation rules evaluating as failed, regardless of report data. Two root causes:
+
+**Root cause A — simpleeval missing builtins.** `EvalWithCompoundTypes` does not include `len`, `sum`, `all`, `any`, `min`, `max` in its default `functions` dict. Every validation rule using these (5 of 6 rules) threw a `NameError` at eval time, was caught by the broad `except Exception`, logged as a warning, and resolved to `passed=False`.
+
+**Root cause B — `corrective_actions` absent from validation context.** The orchestrator's shadow augmentation (line: `self.context[field.source] = result`) was gated on `field.computed_columns` being truthy. `car_table` has no computed columns, so `corrective_actions` was never added to the context dict. Rules referencing it (`verdict_car_consistency`, `overdue_car_date_check`, `high_risk_car_coverage`) always threw `NameError`.
+
+**Fix A:** Added `_EXTRA_FUNCTIONS = {len, sum, all, any, min, max, abs, round, int, float, str, bool}` and a `_make_evaluator()` helper in `validator.py` that applies them to both the rule evaluator and the message interpolator.
+
+**Fix B:** Removed the `and field.computed_columns` guard from the shadow augmentation in `orchestrator.py`. Every extractor table now shadows its result under the source name regardless of whether it has computed columns. This is the correct behaviour — the source name is what downstream expressions (calculators and validation rules alike) reference, not the field ID.
+
+**Options considered for Fix B:** (1) Pass `intake_data` to `run_validation_rules` and merge it into the validator context. (2) Fix shadow augmentation in orchestrator. (3) Manually list required intake keys in the validator.
+
+**Chosen:** Option 2 — fix shadow augmentation. The validation context should be the same context the orchestrator uses for downstream field calculations. Fixing the shadow condition makes validation and downstream calculators consistent with no special-casing in the validator.
+
+**Trade-off:** All extractor table sources now appear in context under two keys — `field.id` (the processed result) and `field.source` (same value, shadowed). This is intentional and already existed for extractors with computed columns; the fix just makes it unconditional.
+
+---
+
+## 27. Module 8 — Dedicated Prompt Quality Iteration Phase
+
+**Context (16 May 2026):** Module 7 eval baseline revealed mean groundedness 3.17 (threshold 3.5). Two fields scored below 2.5 — `scorecard_summary` (2.0) and `risk_narrative` (2.2) — and two more sat between 3.0 and 3.5 — `car_summary` (3.27) and `recommendation` (3.33). This was identified as a meaningful, measurable engineering problem warranting its own tracked module rather than being treated as a minor patch to Module 7.
+
+**Options considered:**
+
+1. Fix prompts inline within Module 7, no separate tracking
+2. Defer prompt improvement to a future iteration with no firm exit criterion
+3. Create a dedicated module with a quantitative exit criterion, versioned prompt history, and decision documentation for each YAML change
+
+**Chosen:** Option 3 — Module 8: LLM Narrative Quality, inserted between the eval framework (Module 7) and additional templates (Module 9).
+
+**Why:**
+
+The eval framework exists precisely to drive prompt iteration. Treating prompt changes as a minor patch conflates measurement with remediation — they are distinct engineering phases. A dedicated module with a documented exit criterion (mean groundedness ≥ 3.5, no individual field below 3.0) and versioned prompt history (`eval/PROMPT_HISTORY.md`) makes the improvement loop visible and reproducible. For a portfolio project this distinction matters: a reader can see baseline scores, the prompts at v1.0, the specific changes made, and the resulting v1.1 scores — a clear before/after story.
+
+Sequencing Module 8 before additional templates (now Module 9) is correct because any new template will inherit the same `narrative_llm` prompt patterns. Getting those patterns right in the SQR first means Module 9 starts with validated conventions rather than replicating the v1.0 weaknesses into two more templates.
+
+**Exit criterion rationale:**
+
+Mean ≥ 3.5 is the existing eval threshold — keeping the exit criterion consistent with the eval script avoids maintaining two separate quality bars. The per-field floor of 3.0 prevents a scenario where high scores on `executive_summary` (4.4) mask a field still at 2.0. Both conditions must hold simultaneously for the module to close.
+
+**Scope decision — structural data changes allowed via YAML template only:**
+
+The root cause for the weak fields is not wording but missing data: `scorecard_summary` receives aggregates when it needs individual criterion rows; `risk_narrative` uses pre-computed shadow fields when it should enumerate rows directly; `car_summary` receives counts when it should receive row-level CAR data. Fixing these requires extending what the prompt receives — more `{{field}}` interpolations referencing row-level data — which is a YAML template change, not an orchestrator or Python code change. Code changes are out of scope for this module.
+
+**Trade-off:** Extending prompt context with row-level data increases token consumption per `narrative_llm` call. At the scale of one report (a few hundred tokens per narrative field) this is negligible. The more significant trade-off is that each YAML change must be documented here in DECISIONS.md before being applied — this is the existing CLAUDE.md requirement and is the mechanism that makes the iteration loop traceable.
+
+---
+
+## 28. Prompt v1.1 — Specific Changes per Narrative Field
+
+**Context (16 May 2026):** Baseline eval showed mean groundedness 3.17. This decision documents the four specific prompt changes that constitute v1.1, per the scope rule in Decision 27 (YAML template changes only; each change documented before application).
+
+**Diagnosis per field:**
+
+`scorecard_summary` (groundedness 2.0): The v1.0 prompt provides only aggregates — `composite_score`, `qualification_verdict`, `lowest_criterion_name` — with no per-criterion row data. The LLM writes general impressions rather than anchoring sentences to specific criterion scores and weights.
+
+`risk_narrative` (groundedness 2.2): The v1.0 prompt feeds row 0 with category, item, and priority score but omits `likelihood` and `impact` separately. More critically, there is no explicit instruction preventing the LLM from inferring supply consequences or outcomes beyond what the `mitigation` field states. The LLM adds plausible-sounding but un-grounded context.
+
+`car_summary` (groundedness 3.27): The v1.0 prompt provides aggregate counts (`count(corrective_actions, status='Open')`, `overdue_car_count`) resolved to numbers. The LLM cannot name specific CARs, owners, or due dates — it speaks in generalities that the judge cannot trace to the input.
+
+`recommendation` (groundedness 3.33): The v1.0 prompt injects `{{approval_conditions_blocks[qualification_verdict]}}` — a 3–4 sentence boilerplate paragraph from the lookup dictionary. The LLM echoes this language, which the judge correctly scores as un-grounded (the text is not derived from field values, it is pre-written prose injected verbatim).
+
+**Changes chosen:**
+
+*scorecard_summary v1.1:* Feed all 6 audit scorecard rows explicitly via `{{scorecard_table[0..5].criterion}}`, `{{scorecard_table[N].score}}`, `{{scorecard_table[N].weight}}`, `{{scorecard_table[N].weighted_score}}`. Add instruction: "Reference criterion names from the table. Do not invent scores or weights not listed above." Increase `max_tokens` 150 → 180 to allow the LLM to reference specific criteria by name.
+
+*risk_narrative v1.1:* Add `likelihood` and `impact` separately to Risk 1 (`{{risk_register[0].likelihood}}`, `{{risk_register[0].impact}}`). Add explicit constraint: "State the specific risk item and report the mitigation text exactly as written above — do not add consequences, timelines, or supply impacts not stated in the mitigation field." Keep `second_risk_*` shadow fields for Risk 2 (they carry fallback values for single-risk cases). `max_tokens` unchanged at 150.
+
+*car_summary v1.1:* Add up to 3 CAR rows by indexed access: `{{corrective_actions[0..2].car_id}}`, `.action_item`, `.owner`, `.due_date`, `.status`. Instruct: "Skip any CAR line where the ID shows '—' — it means fewer than that many CARs exist." Increase `max_tokens` 150 → 160.
+
+*recommendation v1.1:* Remove the `Conditions (if any): {{approval_conditions_blocks[qualification_verdict]}}` line. The conditions block is already in the report body (Section 5 `approval_conditions` field via lookup strategy); including it again in the recommendation prompt is redundant and injects pre-written text the judge cannot trace to a field value. `max_tokens` unchanged at 160.
+
+**Fields not changed:** `performance_narrative` (3.87) and `executive_summary` (4.40) — both above threshold. Changing working prompts risks regression.
+
+**Token interpolation mechanism confirmed:** `_render_prompt()` in `narrative_llm.py` uses a three-tier resolver — `intake.field`, plain identifier, expression evaluation. Indexed table access (`table[N].column`) falls to the expression evaluator via `evaluate_expression()`. Failed index lookups are caught and render as `"—"`. All proposed token references are within the existing mechanism; no code changes required.
+
+**Trade-off:** Hardcoding 6 scorecard rows (indices 0–5) assumes the SQR template always has exactly 6 audit criteria. This holds for the v1.0 template and all 15 test cases. A future template with a different row count would need a matching prompt update — acceptable given that templates are versioned (Decision 9). CAR row access (indices 0–2) uses `"—"` fallback for missing rows; this is adequate for v1.1 and can be refined with calculator shadow fields in v1.2 if needed.
 

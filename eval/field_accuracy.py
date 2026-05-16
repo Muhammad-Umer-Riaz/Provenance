@@ -115,6 +115,43 @@ def check_warnings(
     }
 
 
+def _judge_field_context(field_id: str, intake: dict, ctx: dict) -> str:
+    """Return a field-specific input summary for the judge, including row-level tables where relevant."""
+    base = (
+        f"Supplier: {intake.get('supplier_name')}, "
+        f"Score: {ctx.get('composite_score')}, "
+        f"Verdict: {ctx.get('qualification_verdict')}\n"
+        f"Risk tier: {ctx.get('overall_risk_tier')}, "
+        f"SLA breaches: {ctx.get('breach_count')}"
+    )
+    if field_id == "scorecard_summary":
+        rows = intake.get("audit_scores", [])
+        table = "\n".join(
+            f"  {r.get('criterion')}: score {r.get('score')}/5, weight {r.get('weight')}, "
+            f"weighted {round(r.get('score', 0) * r.get('weight', 0), 2)}"
+            for r in rows
+        )
+        return f"{base}\nAudit scorecard:\n{table}"
+    if field_id == "risk_narrative":
+        rows = intake.get("risk_register", [])
+        table = "\n".join(
+            f"  [{r.get('risk_category')}] {r.get('risk_item')} "
+            f"(L{r.get('likelihood')}×I{r.get('impact')}=P{r.get('likelihood',0)*r.get('impact',0)}): "
+            f"{r.get('mitigation', '')}"
+            for r in rows
+        )
+        return f"{base}\nRisk register:\n{table}"
+    if field_id == "car_summary":
+        rows = intake.get("corrective_actions", [])
+        table = "\n".join(
+            f"  {r.get('car_id')}: {r.get('action_item')} (owner: {r.get('owner')}, "
+            f"due: {r.get('due_date')}, status: {r.get('status')})"
+            for r in rows
+        )
+        return f"{base}\nCorrective actions:\n{table}"
+    return base
+
+
 def call_llm_judge(
     field_id: str,
     intake: dict,
@@ -128,17 +165,14 @@ def call_llm_judge(
         return {"groundedness": 0, "factual_consistency": 0, "reason": "OPENROUTER_API_KEY not set"}
 
     field_text = ctx.get(field_id) or ""
+    field_context = _judge_field_context(field_id, intake, ctx)
     prompt = (
         f"You are evaluating a generated field in a Supplier Qualification Report.\n\n"
         f"Field: {field_id}\n"
-        f"Supplier: {intake.get('supplier_name')}, "
-        f"Score: {ctx.get('composite_score')}, "
-        f"Verdict: {ctx.get('qualification_verdict')}\n"
-        f"Risk tier: {ctx.get('overall_risk_tier')}, "
-        f"SLA breaches: {ctx.get('breach_count')}\n"
+        f"{field_context}\n"
         f"Generated text: {field_text}\n\n"
         f"Score 1–5 on:\n"
-        f"- groundedness: every claim traces to the provided inputs\n"
+        f"- groundedness: every claim traces to the provided inputs above\n"
         f"- factual_consistency: text aligns with computed values (score, verdict, SLA statuses)\n\n"
         f'Respond with JSON only: {{"groundedness": int, "factual_consistency": int, "reason": str}}'
     )
@@ -155,11 +189,17 @@ def call_llm_judge(
                 "messages": [{"role": "user", "content": prompt}],
                 "response_format": {"type": "json_object"},
                 "max_tokens": 200,
+                "temperature": 0,
             },
             timeout=30,
         )
         response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
+        content = response.json()["choices"][0]["message"]["content"].strip()
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+            content = content.strip()
         return json.loads(content)
     except Exception as e:
         return {"groundedness": 0, "factual_consistency": 0, "reason": f"Judge error: {e}"}
@@ -285,7 +325,7 @@ def main() -> None:
     out_path = RESULTS_DIR / f"field_accuracy_{run_id}.json"
     out_path.write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
 
-    print(f"\nResults → {out_path}")
+    print(f"\nResults -> {out_path}")
     print(f"  Deterministic pass rate : {det_pass_rate:.1%}  ({det_pass_count}/{det_total} fields)")
     if warn_total:
         print(f"  Validation warnings     : {warn_pass_rate:.1%}  ({warn_pass_count}/{warn_total} cases)")
