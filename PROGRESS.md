@@ -312,11 +312,29 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ## Module 9: Additional Templates
 
-- [ ] Design NCR (Non-Conformance Report) template field-level strategy assignments
-- [ ] Write NCR YAML skeleton
-- [ ] Design SAT (Site Acceptance Test) template field-level strategy assignments
-- [ ] Write SAT YAML skeleton
-- [ ] Write `docs/template-authoring.md` guide (YAML schema, strategy selection rules, lookup dictionary structure)
+**Scope revision (16 May 2026):** Original plan was two skeleton YAMLs (NCR + SAT) + authoring guide. Revised to one full production-quality SAT template + end-to-end design document + Templates UI update. See Decisions 13 (revised) and 29.
+
+**SAT template (Site Acceptance Test):**
+- [x] Write `templates/site-acceptance-test.yaml` — full production-ready YAML: 6 sections, 24 content fields, 5 `narrative_llm` fields, 3 lookup sources (6 entries each for scope + conditions + signatory), 4 validation rules
+- [x] Write `.agents/plans/9.sat-template.md` — 12-section engineering spec: strategy mix comparison vs SQR, SPLIT table pattern deep-dive, v1 image-annotation pattern + v2 design, section-by-section rationale, intake walkthrough, generation pipeline, review UI notes, export notes, 7 synthetic eval test case designs, prompt iteration notes
+- [x] Update `frontend/src/pages/TemplatesPage.tsx` — SAT card: "6 sections · 42 fields", updated description; NCR card: updated description
+
+**Validation results (16 May 2026):**
+- V1 ✓ `TemplateSchema(**raw)` clean for both YAML files — no schema errors
+- V2 ✓ SAT: 6 sections, 24 content fields, 4 validation rules, 3 lookup sources confirmed
+- V3 ✓ `pytest` → 46 tests pass (no regressions)
+- V4 ✓ `npx tsc --noEmit` → zero errors
+- V5 ✓ Templates page UI: SAT card shows "6 sections · 42 fields · 4 runs" and updated description; NCR card shows updated description (confirmed via browser screenshot)
+- V6 — Backend log `"Loaded template: site-acceptance-test v1.0"` requires server restart (template validated clean independently; running server predates file creation)
+- Note: `sla_thresholds` used in YAML (plan specified `sat_thresholds`; `TemplateSchema` only declares `sla_thresholds`)
+
+**NCR template — documented as future work (Decision 29):**
+- [~] NCR YAML skeleton — dropped; NCR strategy assignments documented in Decision 29; skeleton card retained on Templates page
+
+**Strategy mix this module introduces (vs SQR):**
+- Measurement-analytics table: `extractor` table → computed pass/fail per row → `narrative_llm` analytical paragraph (the SPLIT table pattern)
+- Image-annotation pattern (v1): structured numerics + engineer observation → `narrative_llm` synthesis (no image upload in v1)
+- `classifier` verdict from pass_count / fail_count (simpler chain than SQR's composite_score → verdict)
 
 ---
 

@@ -172,17 +172,19 @@ The SQR domain is universal across manufacturing, engineering, and operations co
 
 ---
 
-## 13. Three Templates Ship With the Repo
+## 13. Two Templates Ship With the Repo — SQR Full + SAT Full (revised 16 May 2026)
 
-**Options considered:** One fully polished template (SQR only), two templates (SQR + one other), three templates (SQR full + two skeleton templates)
+**Original decision (superseded):** Three templates — SQR full + NCR skeleton + SAT skeleton.
 
-**Chosen:** Three templates — SQR full + NCR skeleton + SAT skeleton
+**Revised decision:** Two templates — SQR full + SAT full. NCR removed from Module 9 scope. See Decision 29 for the full rationale.
 
-**Why:**
+**Why the revision:**
 
-A single-template system is indistinguishable from a purpose-built SQR tool. Three templates — even if only SQR gets full polish — prove the engine is a general-purpose platform. The two additional skeletons demonstrate different strategy mixes without requiring the full engineering budget of a second fully-polished template: the NCR template uses a different `classifier` chain (defect severity → escalation path); the SAT template demonstrates `calculator` fields for test pass/fail thresholds. The YAML authoring guide in Module 9 is the handoff artefact that makes this claim credible.
+A skeleton YAML with no prompts, no lookup dictionaries, and no validation rules does not prove the engine generalises — it proves only that fields can be listed. A reader who clones the repo and sees an 80%-empty YAML learns nothing about the orchestration, the prompt design, or the strategy mix. The "platform not tool" claim requires a second template that actually runs: intake form renders, generation executes, review UI works, export produces a document.
 
-**Trade-off:** Writing and validating two additional YAML skeletons adds scope to Module 9. This is deliberately limited to skeleton templates (not full narrative prompts and lookup dictionaries) to keep the scope tractable.
+The SAT template (Site Acceptance Test) is built to full production quality — complete prompts, lookup dictionaries, validation rules, and a design document covering the full hypothetical implementation path. This is more compelling than two skeleton files. The NCR template remains documented as a future template with its strategy assignments described in Decision 29.
+
+**Trade-off:** Two full templates instead of three means the NCR pattern is not demonstrated in running code. This is acceptable because: (1) the SAT template exercises a genuinely different strategy mix from the SQR; (2) the design document at `.agents/plans/9.sat-template.md` demonstrates the engineering thought process for what a third template would require; (3) the Templates page retains a skeleton NCR card as a visible signal of the planned roadmap.
 
 ---
 
@@ -461,4 +463,49 @@ The root cause for the weak fields is not wording but missing data: `scorecard_s
 **Token interpolation mechanism confirmed:** `_render_prompt()` in `narrative_llm.py` uses a three-tier resolver — `intake.field`, plain identifier, expression evaluation. Indexed table access (`table[N].column`) falls to the expression evaluator via `evaluate_expression()`. Failed index lookups are caught and render as `"—"`. All proposed token references are within the existing mechanism; no code changes required.
 
 **Trade-off:** Hardcoding 6 scorecard rows (indices 0–5) assumes the SQR template always has exactly 6 audit criteria. This holds for the v1.0 template and all 15 test cases. A future template with a different row count would need a matching prompt update — acceptable given that templates are versioned (Decision 9). CAR row access (indices 0–2) uses `"—"` fallback for missing rows; this is adequate for v1.1 and can be refined with calculator shadow fields in v1.2 if needed.
+
+---
+
+## 29. Module 9 Scope — SAT Full Template, NCR as Future Work, v2 Image Design
+
+**Context (16 May 2026):** After completing the SQR template and the Module 8 prompt quality iteration, the decision was made to replace the original Module 9 plan (two YAML skeletons + authoring guide) with a single production-quality SAT template plus a comprehensive design document.
+
+**Why SAT over NCR as the second template:**
+
+The SAT (Site Acceptance Test) template was chosen because it exercises two architectural patterns that are visible differentiators for the portfolio:
+
+1. **Measurement-analytics table** — engineer fills a structured test-results table (test ID, parameter, spec min/max, measured value, unit); a `calculator` computed column determines pass/fail per row; a `narrative_llm` analytical paragraph draws specific conclusions from those rows by name and value. This is the "SPLIT table" pattern from the Beneq process engineering domain — user fills structured data, LLM draws insights — distinct from the SQR's verdict-narrative chain.
+
+2. **Image-annotation pattern (v1)** — engineer fills structured numeric fields from instrument readout (measurement type, headline value, unit) plus a free-text observation describing what a figure shows; `narrative_llm` synthesises these into a technical paragraph. The image file itself is not passed to the LLM in v1; the structured inputs and engineer observation are the grounding. This is Option A+B from the design document (§5.5 of the Beneq project brief). v2 would add direct image upload and a vision model call.
+
+**Strategy mix comparison (SAT vs SQR):**
+
+| Strategy | SQR share | SAT share | Why different |
+|---|---|---|---|
+| `lookup` | ~20% | ~35% | Equipment acceptance language is more boilerplate-heavy than procurement scope statements |
+| `extractor` | ~30% | ~30% | Similar — both have structured tables as the data backbone |
+| `calculator` | ~20% | ~15% | SQR has more computed intermediates; SAT verdict is simpler (pass_count / fail_count) |
+| `narrative_llm` | ~25% | ~15% | SAT prose sections are shorter and more constrained; less analytical latitude than SQR narrative |
+| `direct_input` | ~5% | ~5% | Engineer observation field in SAT; equivalent to SQR's remediation notes |
+
+**NCR template — future work rationale:**
+
+The NCR (Non-Conformance Report) template would use a `classifier` chain (defect severity → escalation path), a `hybrid` corrective action table (engineer entries + LLM-proposed gaps from root cause), and SLA `calculator` fields for response deadlines. This is a meaningfully different pattern from both SQR and SAT. It is retained as a visible skeleton card on the Templates page to signal the roadmap, but is not implemented in v1 because: (a) the SAT already proves the platform generalises; (b) the NCR's `hybrid` strategy is not yet implemented in the engine; (c) shipping two full templates is more compelling than three partial ones.
+
+**v2 image design (documented, not implemented):**
+
+The v2 image-annotation extension requires:
+- New intake field type: `image` — `type: image` in the YAML schema, renders as a file upload component (react-dropzone) in the intake form
+- Supabase Storage integration — uploaded image stored as a blob, URL stored in `intake_data`
+- Review UI: image displayed alongside its annotation fields in a side-by-side layout
+- `image_narrative` strategy (new) — vision model call with the image URL + structured fields; output is a grounded analytical paragraph. Uses a multimodal model (e.g. `claude-3-5-sonnet` via OpenRouter) with the same structured output schema as `narrative_llm`
+- Audit log: image URL + model + vision output stored per field event
+
+This is fully specified in `.agents/plans/9.sat-template.md` §12 and is the natural v2 extension once the core system is deployed and validated.
+
+**Templates page — skeleton card copy:**
+
+Both skeleton cards remain visible. Updated descriptions:
+- SAT: "Measurement-analytics template for equipment commissioning. Engineer fills structured test-results table; results narrative draws analytical conclusions from per-test pass/fail data. v1 image-annotation pattern: measurement type + headline values + engineer observation → LLM synthesis. v2: image upload + vision model integration."
+- NCR: "Defect-severity classifier gates the escalation-path narrative and corrective action conditions. Hybrid CAR table: engineer-entered items plus LLM-proposed gaps derived from root cause analysis. SLA calculator fields enforce response and closure deadlines."
 

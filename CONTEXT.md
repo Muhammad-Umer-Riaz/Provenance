@@ -710,7 +710,7 @@ These decisions are final unless explicitly revisited with a documented reason.
 | AD-010 | Generation is async and resumable; per-field failure does not abort the report | One failed field retries independently; rest of report continues |
 | AD-011 | Stack locked to mirror DocChat | FastAPI + React + Supabase + OpenRouter + LangSmith + Docker + EC2. Cognitive efficiency; no new infrastructure to learn. |
 | AD-012 | SQR is the primary demo template for v1 | Universal domain, rich field-type variety, `classifier → narrative_llm` chain is architecturally interesting |
-| AD-013 | Three templates ship with the repo to prove "platform not tool" claim | Even if only SQR gets polish budget, two additional skeleton templates (e.g. NCR, site acceptance test) prove the engine generalises |
+| AD-013 | Two full templates ship with the repo — SQR + SAT (revised) | Skeleton templates do not prove the engine generalises; two fully running templates with different strategy mixes do. NCR retained as skeleton card on the Templates page. See Decision 29. |
 
 ---
 
@@ -721,10 +721,16 @@ These decisions are final unless explicitly revisited with a documented reason.
 - Multi-tenant isolation
 - Real-time collaboration
 - Template marketplace
-- Multimodal image interpretation (LLM reads uploaded images)
+- Image upload infrastructure (`image` field type, react-dropzone, Supabase Storage) — v1 uses the image-annotation pattern (Option A+B): engineer fills structured numeric fields + free-text observation; LLM synthesises prose from those inputs only
+- Multimodal vision model for image interpretation — v1 image-annotation uses structured inputs, not the image file itself; v2 extension designed in `.agents/plans/9.sat-template.md` §12
 - Nested structured fields (tables inside tables)
 - Mobile UI
 - SSO / enterprise auth
+
+**v2 extensions designed but not implemented (see Decision 29 and `.agents/plans/9.sat-template.md`):**
+- `image` intake field type with file upload → Supabase Storage → vision model call → `image_narrative` strategy
+- `hybrid` strategy: engineer fills rows manually, LLM proposes additional rows in review mode (designed for NCR corrective action tables)
+- Measurement-analytics SPLIT table with full image integration (v1 SAT template uses structured numeric inputs only)
 
 ---
 
@@ -735,7 +741,7 @@ These decisions are final unless explicitly revisited with a documented reason.
 | 1 — Engine + happy path | One template hardcoded, intake form renders from YAML, sequential generation, bare-bones UI, end-to-end pipeline |
 | 2 — Review UI | Three-pane layout, field-level editing, regeneration, status tracking, audit log, diff view |
 | 3 — Eval framework | Synthetic test set, eval scripts, baseline accuracy run, prompt iteration with versioned changelog |
-| 4 — Template authoring + templates 2 & 3 | YAML authoring guide, second and third report templates to prove engine generalises |
+| 4 — Module 9: SAT template ✓ | Full production-quality Site Acceptance Test YAML (6 sections, 24 content fields, 5 narrative_llm fields, 4 validation rules); end-to-end 12-section design document (`.agents/plans/9.sat-template.md`); Templates page UI updated. NCR retained as skeleton card only. |
 | 5 — Deployment, docs, polish | EC2 deployment, README, demo video, portfolio update |
 
 ---

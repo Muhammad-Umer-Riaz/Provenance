@@ -15,7 +15,7 @@ const SKELETON_TEMPLATES = [
     version: 'v0.2.0',
     name: 'Non-Conformance Report',
     description:
-      'Defect-severity classifier chains into the escalation-path narrative. Skeleton template; open for field contributions.',
+      'Defect-severity classifier gates the escalation-path narrative and corrective action conditions. Hybrid CAR table: engineer-entered action items plus LLM-proposed gaps derived from root cause analysis. SLA calculator fields enforce response and closure deadlines.',
     sections: 4,
     fields: 22,
     runs: 12,
@@ -25,9 +25,9 @@ const SKELETON_TEMPLATES = [
     version: 'v0.2.0',
     name: 'Site Acceptance Test',
     description:
-      'Calculator-heavy template — pass/fail thresholds across instrumentation tests. Narrative is a single exec summary.',
-    sections: 5,
-    fields: 38,
+      'Measurement-analytics template for equipment commissioning. Engineer fills structured test-results table; results narrative draws analytical conclusions from per-test pass/fail data. v1 image-annotation pattern: measurement type + headline values + engineer observation → LLM synthesis. v2: image upload + vision model integration.',
+    sections: 6,
+    fields: 42,
     runs: 4,
   },
 ]
