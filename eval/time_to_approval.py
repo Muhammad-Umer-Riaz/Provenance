@@ -99,7 +99,7 @@ def main() -> None:
     out_path = RESULTS_DIR / f"time_to_approval_{report_id[:8]}_{ts}.json"
     out_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
 
-    print(f"Results → {out_path}")
+    print(f"Results -> {out_path}")
     print(f"  Total fields       : {total_fields}")
     print(f"  Approved fields    : {approved_fields}")
     print(f"  First-pass rate    : {first_pass_rate:.1%}")

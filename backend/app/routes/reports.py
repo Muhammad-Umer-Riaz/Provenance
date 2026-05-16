@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -5,6 +6,7 @@ from pydantic import BaseModel
 
 from app.database import supabase
 from app.templates.loader import get_loaded_templates
+from app.validator import run_validation_rules
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -263,6 +265,60 @@ async def get_report_fields(
         .execute()
     )
     return {"fields": result.data or []}
+
+
+@router.post("/{report_id}/revalidate", response_model=dict)
+async def revalidate_report(
+    report_id: str,
+    user_id: str = Depends(get_current_user_id),
+):
+    """Re-run validation rules against current field values and update the report."""
+    report_res = (
+        supabase.table("reports")
+        .select("id, intake_data, template_version, template:templates(template_id)")
+        .eq("id", report_id)
+        .eq("user_id", user_id)
+        .single()
+        .execute()
+    )
+    if not report_res.data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+
+    row = report_res.data
+    intake_data: dict[str, Any] = row["intake_data"] or {}
+    template_text_id: str = row["template"]["template_id"] if row.get("template") else ""
+
+    templates = get_loaded_templates()
+    template = next((t for t in templates if t.template.id == template_text_id), None)
+    if not template:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+
+    # Fetch stored field values to reconstruct the computed parts of context
+    fields_res = (
+        supabase.table("report_fields")
+        .select("field_id, value")
+        .eq("report_id", report_id)
+        .execute()
+    )
+    stored: dict[str, Any] = {}
+    for f in (fields_res.data or []):
+        raw = f.get("value")
+        if raw is None:
+            continue
+        try:
+            stored[f["field_id"]] = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            stored[f["field_id"]] = raw
+
+    # Build validation context: intake lists + computed field scalars
+    ctx: dict[str, Any] = {**intake_data, **stored}
+
+    validation_results = run_validation_rules(template, ctx)
+    warnings = [r for r in validation_results if not r["passed"]]
+
+    supabase.table("reports").update({"validation_warnings": warnings}).eq("id", report_id).execute()
+
+    return {"validation_results": validation_results, "issue_count": len(warnings)}
 
 
 @router.delete("/{report_id}", status_code=status.HTTP_204_NO_CONTENT)

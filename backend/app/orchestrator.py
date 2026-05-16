@@ -75,13 +75,9 @@ class ReportOrchestrator:
 
         self.context[field.id] = result
 
-        # Shadow augmented table rows back under the source name so downstream
-        # expressions that reference the source table see computed columns too
-        if (
-            field.strategy == "extractor"
-            and field.source
-            and field.computed_columns
-        ):
+        # Shadow table rows back under the source name so downstream expressions
+        # (calculators, validation rules) can reference the source table directly.
+        if field.strategy == "extractor" and field.source:
             self.context[field.source] = result
 
         return result

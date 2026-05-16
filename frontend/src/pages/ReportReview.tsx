@@ -564,7 +564,7 @@ export function ReportReview() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <p className="font-mono text-xs text-muted-foreground">
-              reports › {id?.slice(0, 8)} › review
+              reports › SQR-{id?.slice(0, 8)} › review
             </p>
             {report?.score != null && (
               <span className="font-mono text-xs text-muted-foreground">
