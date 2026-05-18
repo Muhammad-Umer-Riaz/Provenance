@@ -68,8 +68,6 @@ const PREV_INVOICE_SCHEMA: IntakeFieldSchema = {
 }
 
 export function Step2QualificationContext({ control, watch }: Props) {
-  const _isNotInitial = watch.qualification_type && watch.qualification_type !== 'Initial qualification'
-
   return (
     <div className="space-y-4">
       <div className="mb-6">

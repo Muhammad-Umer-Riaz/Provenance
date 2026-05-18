@@ -18,8 +18,6 @@ export function Step4AuditScorecard({ control, errors }: Props) {
     const sc = typeof r.score === 'number' ? r.score : 0
     return s + r.weight * sc
   }, 0)
-  const _scoredCount = fields.filter(r => r.score !== '' && r.score != null).length
-
   return (
     <div className="space-y-4">
       <div className="mb-6">
