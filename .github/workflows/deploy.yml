@@ -3,6 +3,18 @@ name: Deploy
 on:
   push:
     branches: [master]
+    paths:
+      - 'backend/**'
+      - 'frontend/src/**'
+      - 'frontend/public/**'
+      - 'frontend/package*.json'
+      - 'frontend/vite.config.*'
+      - 'frontend/tsconfig*'
+      - 'frontend/index.html'
+      - 'templates/**'
+      - 'nginx/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy.yml'
 
 env:
   AWS_REGION: eu-north-1
