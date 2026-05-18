@@ -292,17 +292,15 @@ export function IntakeWizard({ template, editReport }: Props) {
       form.setError('risk_register', { message: 'At least one risk is required' })
       return
     }
-    const valid = await trigger()
-    if (!valid) {
-      const errs = form.formState.errors
-      for (let i = 0; i < STEP_FIELD_NAMES.length; i++) {
-        if (STEP_FIELD_NAMES[i].some(f => errs[f as keyof typeof errs] != null)) {
-          setCurrentStep(i)
-          setSubmitError(`Step ${i + 1} has incomplete or invalid fields — please review.`)
-          return
-        }
+
+    // Validate each step using the same per-step trigger as handleNext
+    for (let i = 0; i < STEP_FIELD_NAMES.length; i++) {
+      const valid = await trigger(STEP_FIELD_NAMES[i] as Parameters<typeof trigger>[0])
+      if (!valid) {
+        setCurrentStep(i)
+        setSubmitError(`Step ${i + 1} has incomplete or invalid fields — please review.`)
+        return
       }
-      return
     }
 
     setSubmitting(true)
@@ -418,6 +416,9 @@ export function IntakeWizard({ template, editReport }: Props) {
 
       {/* Bottom bar */}
       <div className="border-t px-6 py-3">
+        {submitError && (
+          <p className="mb-2 text-xs text-destructive">{submitError}</p>
+        )}
         <div className="flex items-center justify-between">
           <Button
             type="button"

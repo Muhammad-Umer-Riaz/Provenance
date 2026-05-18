@@ -45,7 +45,7 @@ export function SignupPage() {
               account, then sign in.
             </CardDescription>
           </CardHeader>
-          <CardFooter>
+          <CardFooter className="border-0 bg-transparent">
             <Link to="/login" className="text-sm underline underline-offset-2">
               Back to sign in
             </Link>
@@ -100,7 +100,7 @@ export function SignupPage() {
               />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col gap-3">
+          <CardFooter className="flex flex-col gap-3 border-0 bg-transparent">
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Creating account…' : 'Create account'}
             </Button>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '@/context/AuthContext'
 import { getReport, getReportFields, updateField, regenerateField, exportReport } from '@/lib/api'
 import { subscribeToReportFields } from '@/lib/realtime'
 import type { ReportField, ReportResponse, ValidationWarning } from '@/types/template'
@@ -418,6 +419,8 @@ function FieldPanel({
 
 export function ReportReview() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const { user, signOut } = useAuth()
 
   const [report, setReport] = useState<ReportResponse | null>(null)
   const [fields, setFields] = useState<ReportField[]>([])
@@ -549,6 +552,43 @@ export function ReportReview() {
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-screen flex-col overflow-hidden">
+
+      {/* ── Main nav ── */}
+      <header className="flex-none border-b px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => navigate('/templates')}
+              className="flex items-center gap-1.5 text-sm font-semibold tracking-tight"
+            >
+              <span className="text-primary">◆</span> Provenance
+            </button>
+            <nav className="flex gap-1">
+              <button
+                onClick={() => navigate('/templates')}
+                className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground"
+              >
+                Templates
+              </button>
+              <button
+                onClick={() => navigate('/reports')}
+                className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground"
+              >
+                Reports
+              </button>
+            </nav>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">{user?.email}</span>
+            <button
+              onClick={signOut}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </header>
 
       {/* ── Step ribbon ── */}
       <div className="flex-none border-b bg-muted/30 px-6 py-2">
