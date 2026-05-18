@@ -170,7 +170,7 @@ If re-qualification, frame the recommendation relative to the previous status.
 
 ## v1.1 (16 May 2026)
 
-Decision 28 in `DECISIONS.md` documents rationale for each change.
+Decision 28 in `../docs/DECISIONS.md` documents rationale for each change.
 
 Eval run: `field_accuracy_20260516_124436.json` (judge fixed with field-specific context, temperature=0)  
 Final canonical run: `field_accuracy_20260516_130234.json`

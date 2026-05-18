@@ -31,7 +31,7 @@ The demo template is a **Supplier Qualification Report (SQR)** — a procurement
 ### In Scope
 - ✅ Field-level orchestration with 7 active v1 strategies (lookup, extractor, calculator, template_fill, direct_input, classifier, narrative_llm)
 - ✅ YAML template parser and validator
-- ✅ SQR template (6 sections, full field-level strategy assignments per CONTEXT.md)
+- ✅ SQR template (6 sections, full field-level strategy assignments per ARCHITECTURE.md)
 - ✅ Auto-rendered intake form from YAML schema
 - ✅ Async generation pipeline with per-field failure isolation and retry
 - ✅ Supabase Realtime generation progress streaming to frontend

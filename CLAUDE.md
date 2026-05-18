@@ -15,11 +15,11 @@ before export.
 ## How to orient yourself before doing anything
 
 Read these files in order:
-1. `CONTEXT.md` — full architectural background, strategy taxonomy, YAML template,
+1. `docs/ARCHITECTURE.md` — full architectural background, strategy taxonomy, YAML template,
    report anatomy, and all decisions already made. This is the design source of truth.
-2. `DECISIONS.md` — every major design choice with reasoning. Check here before
+2. `docs/DECISIONS.md` — every major design choice with reasoning. Check here before
    proposing any architectural change.
-3. `PROGRESS.md` — what is done, in progress, and not yet started.
+3. `docs/STATUS.md` — what is done, in progress, and not yet started.
 4. `templates/supplier-qualification-report.yaml` — the v1 template spec once created.
 
 ## User preferences — follow these strictly
@@ -75,7 +75,7 @@ verdict), its output gates the `lookup` conditions block in Section 5, and it is
 passed as context to Section 6 `narrative_llm` calls. This execution order must
 be preserved.
 
-Full report anatomy and YAML template are in `CONTEXT.md` Section 5 and 6.
+Full report anatomy and YAML template are in `docs/ARCHITECTURE.md` Section 5 and 6.
 
 
 ## Starting services
@@ -120,7 +120,7 @@ Verify backend is healthy: `GET http://localhost:8000/` → `{"status": "ok"}`
 2. **Build** — execute the plan
 3. **Validate** — test against the checklist in the plan
 4. **Iterate** — fix issues found during validation
-5. **Update** — mark tasks done in `PROGRESS.md`
+5. **Update** — mark tasks done in `docs/STATUS.md`
 
 ## Validation
 
@@ -135,7 +135,7 @@ features on this project.
 
 **After completing a feature:**
 - Run through your filled-in checklist and mark each item
-- Update `PROGRESS.md` with results, bugs found, and any post-release fixes
+- Update `docs/STATUS.md` with results, bugs found, and any post-release fixes
 - If you discover a new recurring pitfall not in the Known Pitfalls table,
   add it to `.agents/validation-framework.md`
 
@@ -150,7 +150,7 @@ features on this project.
 ## What NOT to do
 
 - Do not change strategy assignments in the YAML template without a documented
-  decision in `DECISIONS.md`
+  decision in `docs/DECISIONS.md`
 - Do not call an LLM for `calculator`, `extractor`, `lookup`, or `template_fill`
   fields — these are intentionally deterministic
 - Do not allow report export until all required fields are in `approved` status —

@@ -23,7 +23,7 @@ build/
 .cache/
 
 # IDE
-.vscode/settings.json
+.vscode/
 .idea/
 
 # OS
@@ -51,7 +51,7 @@ eval/results/*.json
 screen-*.png
 
 # UI design assets (local reference only)
-UI Designs from Claude Code/
+docs/images/designs/
 
 # Private positioning / planning docs — never commit
 hereisadraftcompiledcurry.md
