@@ -340,11 +340,96 @@ Convention: `[ ]` = Not started  |  `[-]` = In progress  |  `[x]` = Completed  |
 
 ## Module 10: Production Deployment & Polish
 
-- [ ] Write Dockerfile for FastAPI backend
-- [ ] Configure React production build → S3 bucket + CloudFront distribution
-- [ ] Set up EC2 t3.small (Docker Compose + Nginx reverse proxy + HTTPS via Certbot)
-- [ ] Write GitHub Actions CI/CD pipeline (push to main → build → push to ECR → SSH deploy to EC2)
-- [ ] Add rate limiting middleware (slowapi — per-IP limits on generate and export endpoints)
-- [ ] Populate `DECISIONS.md` with any remaining build decisions
-- [ ] Write `README.md`
+Plan: `.agents/plans/10.production-deployment.md`
+
+**Deployment completed: 18 May 2026**
+
+### Architecture (as deployed)
+
+```
+Browser ──HTTPS──► CloudFront frontend (d4q93waqw2e37.cloudfront.net)
+                    └── S3 bucket: provenance-frontend-831942534901 (eu-north-1)
+
+Browser ──HTTPS──► CloudFront backend (d22tdzc6t8x3j2.cloudfront.net)
+                    └── EC2 t3.micro (13.62.248.243, eu-north-1b) Nginx :80
+                         └── Docker: uvicorn :8080
+```
+
+No custom domain. CloudFront provides HTTPS via `*.cloudfront.net` certificates.
+EC2 is free tier (t3.micro, first 12 months). DocChat EC2 stopped + Elastic IP released first.
+Estimated cost: ~$0.10/month (ECR storage only, everything else is free tier or CloudFront free tier).
+
+### AWS Resources Created
+
+| Resource | ID / Name | Value |
+|---|---|---|
+| IAM user | `provenance-deployer` | ECRPowerUser + S3Full + CloudFrontFull |
+| IAM role | `provenance-ec2-role` | ECRReadOnly, attached to EC2 |
+| ECR repo | `provenance-backend` | 831942534901.dkr.ecr.eu-north-1.amazonaws.com |
+| EC2 instance | i-09e86fe8e8cdbb3df | t3.micro, Ubuntu 26.04, eu-north-1b |
+| Elastic IP | 13.62.248.243 | Attached to EC2 |
+| S3 bucket | provenance-frontend-831942534901 | Static website hosting, public read |
+| CloudFront (backend) | E26SZY6KOKKA88 | d22tdzc6t8x3j2.cloudfront.net, CachingDisabled |
+| CloudFront (frontend) | E3L9H20PU0S36O | d4q93waqw2e37.cloudfront.net, CachingOptimized |
+
+### Code Changes Completed
+
+- [x] `backend/app/limiter.py` — standalone slowapi Limiter instance (avoids circular import)
+- [x] `backend/app/main.py` — wire limiter + RateLimitExceeded handler
+- [x] `backend/app/routes/generation.py` — `@limiter.limit("10/minute")` on `/generate`
+- [x] `backend/app/routes/export.py` — `@limiter.limit("5/minute")` on `/export`
+- [x] `backend/requirements.txt` — add `slowapi==0.1.9`
+- [x] `backend/Dockerfile` — python:3.11-slim, playwright install, port 8080
+- [x] `docker-compose.yml` — single backend service, reads `/home/ubuntu/.env.production`
+- [x] `nginx/nginx.conf` — host-level Nginx, proxies :80 → :8080
+- [x] `.github/workflows/deploy.yml` — build → ECR push → SSH deploy → S3 upload → CF invalidation
+
+### EC2 Server Setup
+
+- [x] 1GB swap (`/swapfile`) — prevents OOM when Playwright launches Chrome for PDF export
+- [x] Docker 29.5.0 + Docker Compose v5.1.3
+- [x] AWS CLI 2.31.35
+- [x] Nginx 1.28.3 — proxies port 80 → 8080, enabled and set to auto-start
+- [x] `/home/ubuntu/.env.production` — all secrets, `TEMPLATES_DIR=/templates`, `FRONTEND_URL=https://d4q93waqw2e37.cloudfront.net`
+- [x] `ECR_IMAGE` persisted to `~/.bashrc` so `docker compose` always resolves
+
+### Bugs Found and Fixed During Deployment
+
+1. **Port mismatch** — `start.sh` said `--port 8000` but `frontend/.env` had `localhost:8080`. All Docker/Nginx configs written to use port 8080. (`start.sh` still has old value; local dev uses `uvicorn --port 8080` manually.)
+
+2. **Vite `.env.production` not picked up** — `npx vite build` didn't read `.env.production` correctly when run from PowerShell. Fixed by setting `$env:VITE_BACKEND_URL` in the shell before building. Frontend builds for production must use: `$env:VITE_BACKEND_URL = "https://d22tdzc6t8x3j2.cloudfront.net"; npx vite build`.
+
+3. **`asyncio.ProactorEventLoop` Windows-only** — `pdf_renderer.py` used `asyncio.ProactorEventLoop()` which doesn't exist on Linux. Fixed to `asyncio.new_event_loop()` in `_run_playwright_in_thread`. (Decision: see DECISIONS.md §31.)
+
+4. **`zod@4` + `@hookform/resolvers@5` incompatibility** — Zod v4's changed error format caused `trigger()` to return `false` silently with no mappable field errors, making the Submit button appear to do nothing. Downgraded to `zod@3` + `@hookform/resolvers@3`. (Decision: see DECISIONS.md §31.)
+
+5. **Wrong template loaded on report edit** — `ReportsPage.handleEdit` only passed `id` and `intake_data` in navigation state, not `template_id`. `NewReportPage` always loaded `ts[0]` (SAT template) when no `passedTemplate` was provided, causing SAT field validation on an SQR report. Fixed by passing `template_id` + `template_version` from `handleEdit` and matching the correct template in `NewReportPage`.
+
+6. **CloudFront new wizard UI differs from plan** — New AWS console CloudFront wizard has a "Get started" step with distribution name and type before reaching origin settings. Raw IP addresses are rejected as origin domain — must use EC2 public DNS hostname (`ec2-13-62-248-243.eu-north-1.compute.amazonaws.com`). WAF step appears in wizard (costs $14/month — skipped). Plan updated to reflect actual console flow.
+
+7. **Ubuntu 26.04 used instead of 22.04** — 22.04 was not in the EC2 Quick Start list. 26.04 is equally supported and free tier eligible; Docker installation commands are identical.
+
+8. **TypeScript build errors** — Zod v4 removed `required_error`/`invalid_type_error` from `z.string()` params; these type errors block `npm run build` (which runs `tsc -b` first). Fixed by downgrading Zod (see bug 4 above). The `npx vite build` workaround (skips type checking) is no longer needed but was used during initial deployment before the root cause was identified.
+
+### Validation Results
+
+- [x] `curl localhost:8080` → `{"status":"ok","version":"0.1.0"}` (uvicorn direct)
+- [x] `curl localhost:80` → `{"status":"ok","version":"0.1.0"}` (Nginx proxy)
+- [x] `https://d22tdzc6t8x3j2.cloudfront.net/` → `{"status":"ok"}` (backend CloudFront)
+- [x] `https://d4q93waqw2e37.cloudfront.net` → React app loads, login works (frontend CloudFront)
+- [x] Templates and Reports pages load
+- [x] New report intake form submits correctly (SQR template)
+- [x] Report generation runs (LLM narrative, classifier, calculator fields)
+- [x] Review UI: approve, edit, regenerate all work
+- [x] PDF export works (Playwright + Chromium inside Docker)
+- [x] DOCX export works
+- [x] JSON export works
+- [x] CORS correct: `Access-Control-Allow-Origin: https://d4q93waqw2e37.cloudfront.net`
+- [x] Rate limiting: slowapi wired on `/generate` and `/export`
+
+### Remaining
+
+- [ ] GitHub Actions CI/CD — repo not yet pushed to GitHub; 10 secrets to add once pushed
+- [ ] Fix `start.sh` port (8000 → 8080) for local dev consistency
+- [ ] Fix remaining TypeScript strict errors in `IntakeWizard.tsx` (non-blocking; `npm run build` now works with zod@3)
 - [ ] Record demo walkthrough

@@ -354,7 +354,9 @@ The proportional colour bar is preserved because the ratio conveys at a glance t
 
 **Options considered:** `/reports/:id/edit` dedicated route, navigate to `/reports/new` with report data in `location.state`, open an edit modal on the Reports list page
 
-**Chosen:** Navigate to `/reports/new` with `editReport: { id, intake_data }` in `location.state`
+**Chosen:** Navigate to `/reports/new` with `editReport: { id, intake_data, template_id, template_version }` in `location.state`
+
+**Post-deployment correction (Decision 31c):** The original implementation passed only `{ id, intake_data }`. When a second template (SAT) was added in Module 9, `NewReportPage` began loading the wrong template for SQR reports, causing silent validation failure. `template_id` and `template_version` were added to the navigation state to let `NewReportPage` select the correct template.
 
 **Why:**
 
@@ -510,4 +512,58 @@ This is fully specified in `.agents/plans/9.sat-template.md` §12 and is the nat
 Both skeleton cards remain visible. Updated descriptions:
 - SAT: "Measurement-analytics template for equipment commissioning. Engineer fills structured test-results table; results narrative draws analytical conclusions from per-test pass/fail data. v1 image-annotation pattern: measurement type + headline values + engineer observation → LLM synthesis. v2: image upload + vision model integration."
 - NCR: "Defect-severity classifier gates the escalation-path narrative and corrective action conditions. Hybrid CAR table: engineer-entered items plus LLM-proposed gaps derived from root cause analysis. SLA calculator fields enforce response and closure deadlines."
+
+---
+
+## 30. Module 10 — Production Deployment Architecture
+
+**Options considered:**
+1. Single EC2 (Docker Compose): frontend + backend both on EC2, Nginx in a container serves the React build and proxies `/api/*` to the backend container — the same pattern used for DocChat.
+2. Split deployment (PRD spec): React frontend on S3 + CloudFront, FastAPI backend on EC2 behind a second CloudFront distribution for HTTPS.
+
+**Chosen:** Split deployment (S3 + CloudFront for frontend, EC2 for backend).
+
+**Why:**
+
+DocChat already demonstrates the single-EC2 Docker Compose pattern. Deploying Provenance the same way adds nothing new to the portfolio — two projects, one architecture. The split deployment introduces distinct, independently marketable skills: CDN-backed static hosting (S3 + CloudFront), container registries (ECR), IAM least-privilege service accounts, and GitHub Actions CI/CD. These map directly to how production frontend/backend systems are actually separated at scale. A recruiter reviewing both projects sees two different deployment architectures, not the same pattern repeated.
+
+No custom domain is available, so Certbot/HTTPS on EC2 is not possible. HTTPS is provided by CloudFront's default `*.cloudfront.net` certificate on both distributions. A second CloudFront distribution in front of the EC2 backend (caching disabled) solves the browser mixed-content restriction (HTTPS frontend cannot call an HTTP API) without requiring a domain.
+
+AWS account is within its first 12 months. EC2 t3.micro, EBS, and CloudFront all fall within free-tier limits. ECR storage for the Docker image may slightly exceed the 500 MB free tier — estimated cost ~$0.10/month total. DocChat's EC2 is stopped and its Elastic IP released before Provenance is launched, keeping the account within the 750 hr/month free-tier limit for t3.micro.
+
+**Trade-off:** The split deployment is significantly more complex to configure (7+ AWS services vs 1). It takes longer to set up and has more potential failure points. For a 1-month demo with infrequent code changes, GitHub Actions CI/CD provides less value than it would in a continuously-iterated product. The simpler path (Docker Compose only) would be live faster and cost the same. The added complexity is accepted because the deployment itself is part of the portfolio artefact — the goal is to demonstrate cloud architecture breadth, not just application functionality.
+
+---
+
+## 31. Module 10 — Post-Deployment Bug Fixes
+
+Four bugs were found and fixed during the actual deployment that were not visible in local development. Documented here because they represent non-obvious platform differences that would recur in any future redeployment.
+
+**31a. `asyncio.ProactorEventLoop` Windows-only**
+
+`pdf_renderer.py` used `asyncio.ProactorEventLoop()` to run Playwright in a thread pool worker. `ProactorEventLoop` is a Windows-only class — it does not exist on Linux. The Docker container (Ubuntu) raised `AttributeError: module 'asyncio' has no attribute 'ProactorEventLoop'` on every PDF export, producing a corrupted file.
+
+**Chosen fix:** Replace with `asyncio.new_event_loop()`, which is cross-platform. On Windows, Python 3.10+ defaults `new_event_loop()` to ProactorEventLoop anyway. In a ThreadPoolExecutor worker thread, SelectorEventLoop (the Linux default) supports subprocess creation, so no special loop is needed.
+
+**Trade-off:** None. The original ProactorEventLoop was only needed on Windows to avoid inheriting the main thread's SelectorEventLoop policy; in a worker thread a fresh loop is always created regardless.
+
+---
+
+**31b. `zod@4` + `@hookform/resolvers@5` silent validation failure**
+
+Upgrading to Zod v4 (which removed `required_error`/`invalid_type_error` from `z.string()` options) combined with `@hookform/resolvers@5` (which changed the internal resolver generic types) caused `trigger()` in `handleSubmit` to return `false` with an empty `form.formState.errors` object. The wizard's step-error loop found no matching fields and hit a bare `return` with no user feedback — the Submit button appeared completely unresponsive.
+
+**Chosen fix:** Downgrade to `zod@3` and `@hookform/resolvers@3`. No code changes to schema or form logic were required; both packages are drop-in replacements at v3. The TypeScript errors introduced by Zod v4's API changes (removed params, changed resolver generics) also disappear at v3.
+
+**Trade-off:** Locked to Zod v3 until the codebase is migrated to Zod v4's API (primarily replacing `required_error`/`invalid_type_error` with `{ error: ... }`, and updating the resolver generic signature in `IntakeWizard`). Migration is low-risk but not urgent — v3 is stable and widely supported.
+
+---
+
+**31c. Wrong template loaded when editing a report**
+
+`ReportsPage.handleEdit` navigated to `/reports/new` passing only `{ id, intake_data }` in router state — no template information. `NewReportPage` fell back to `getTemplates().then(ts => ts[0])` when no `passedTemplate` was provided. If the API returned the SAT template first, the intake wizard was initialised with the SAT schema but pre-populated with SQR data. The SAT required fields (`equipment_model`, `site_name`, etc.) all failed validation silently (see 31b), and Submit did nothing.
+
+**Chosen fix:** `handleEdit` now passes `template_id` and `template_version` from the report alongside `id` and `intake_data`. `NewReportPage` uses `template_id` to find the matching template from the fetched list, falling back to `ts[0]` only when creating a new report with no template context.
+
+**Trade-off:** None. The previous behaviour was a latent bug that only became visible when a second template existed in the system (introduced in Module 9). It would have blocked all report editing as soon as the SAT template was added.
 

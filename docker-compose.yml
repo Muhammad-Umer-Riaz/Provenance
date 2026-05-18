@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  backend:
+    image: ${ECR_IMAGE}
+    env_file:
+      - /home/ubuntu/.env.production
+    ports:
+      - "8080:8080"
+    restart: unless-stopped

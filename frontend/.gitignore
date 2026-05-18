@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Environment files — production values are set at build time, not committed
+.env.production
+.env.production.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

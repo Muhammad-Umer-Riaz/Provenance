@@ -1,10 +1,11 @@
 import logging
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import Response
 
 from app.audit_log import log_field_event
+from app.limiter import limiter
 from app.database import supabase
 from app.routes.reports import get_current_user_id
 from app.services.docx_renderer import generate_docx
@@ -16,7 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 @router.post("/{report_id}/export")
+@limiter.limit("5/minute")
 async def export_report(
+    request: Request,
     report_id: str,
     format: Literal["pdf", "docx", "json"] = "pdf",
     user_id: str = Depends(get_current_user_id),

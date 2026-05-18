@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext'
 
 interface LocationState {
   template?: TemplateListItem
-  editReport?: { id: string; intake_data: Record<string, unknown> }
+  editReport?: { id: string; intake_data: Record<string, unknown>; template_id?: string; template_version?: string }
 }
 
 export function NewReportPage() {
@@ -28,7 +28,12 @@ export function NewReportPage() {
     getTemplates()
       .then(ts => {
         if (ts.length === 0) { setError('No templates available.'); return }
-        setTemplate(ts[0])
+        if (editReport?.template_id) {
+          const match = ts.find(t => t.template_id === editReport.template_id)
+          setTemplate(match ?? ts[0])
+        } else {
+          setTemplate(ts[0])
+        }
       })
       .catch(e => setError(e instanceof Error ? e.message : 'Failed to load template'))
       .finally(() => setLoading(false))

@@ -98,7 +98,7 @@ export function ReportsPage() {
   function handleEdit(r: ReportResponse) {
     navigate('/reports/new', {
       state: {
-        editReport: { id: r.id, intake_data: r.intake_data },
+        editReport: { id: r.id, intake_data: r.intake_data, template_id: r.template_id, template_version: r.template_version },
       },
     })
   }

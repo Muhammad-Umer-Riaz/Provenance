@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 
 from app.audit_log import log_field_event
 from app.database import supabase
@@ -12,6 +12,7 @@ from app.templates.loader import get_loaded_templates
 from app.templates.schemas import FieldSchema, SectionSchema
 from app.validator import run_validation_rules
 from app.config import settings
+from app.limiter import limiter
 
 router = APIRouter(prefix="/api/reports", tags=["generation"])
 logger = logging.getLogger(__name__)
@@ -24,7 +25,9 @@ _VERDICT_FIELD_ID = "qualification_verdict"
 # ── Endpoint ───────────────────────────────────────────────────────────────────
 
 @router.post("/{report_id}/generate", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit("10/minute")
 async def generate_report(
+    request: Request,
     report_id: str,
     background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),

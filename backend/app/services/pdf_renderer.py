@@ -160,11 +160,8 @@ async def _playwright_render(html: str) -> bytes:
 
 
 def _run_playwright_in_thread(html: str) -> bytes:
-    # Explicitly use ProactorEventLoop — required on Windows because uvicorn's
-    # event loop does not support subprocess creation (asyncio.run() would
-    # respect the global policy which may still be SelectorEventLoop).
     import asyncio
-    loop = asyncio.ProactorEventLoop()
+    loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
         return loop.run_until_complete(_playwright_render(html))
