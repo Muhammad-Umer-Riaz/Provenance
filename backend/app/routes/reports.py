@@ -155,10 +155,10 @@ async def create_report(
     except HTTPException:
         raise
     except Exception as exc:
-        import traceback
+        logger.exception("Failed to create report")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"{type(exc).__name__}: {exc}\n{traceback.format_exc()}",
+            detail="Report creation failed. Please try again.",
         ) from exc
 
 
