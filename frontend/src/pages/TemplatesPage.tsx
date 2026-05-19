@@ -11,16 +11,6 @@ import { cn } from '@/lib/utils'
 
 const SKELETON_TEMPLATES = [
   {
-    id: 'ncr.nonconformance.v0',
-    version: 'v0.2.0',
-    name: 'Non-Conformance Report',
-    description:
-      'Defect-severity classifier gates the escalation-path narrative and corrective action conditions. Hybrid CAR table: engineer-entered action items plus LLM-proposed gaps derived from root cause analysis. SLA calculator fields enforce response and closure deadlines.',
-    sections: 4,
-    fields: 22,
-    runs: 12,
-  },
-  {
     id: 'sat.acceptance.v0',
     version: 'v0.2.0',
     name: 'Site Acceptance Test',
@@ -29,6 +19,16 @@ const SKELETON_TEMPLATES = [
     sections: 6,
     fields: 42,
     runs: 4,
+  },
+  {
+    id: 'ncr.nonconformance.v0',
+    version: 'v0.2.0',
+    name: 'Non-Conformance Report',
+    description:
+      'Defect-severity classifier gates the escalation-path narrative and corrective action conditions. Hybrid CAR table: engineer-entered action items plus LLM-proposed gaps derived from root cause analysis. SLA calculator fields enforce response and closure deadlines.',
+    sections: 4,
+    fields: 22,
+    runs: 12,
   },
 ]
 
@@ -108,7 +108,8 @@ export function TemplatesPage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const sqrTemplate = templates[0] ?? null
+  const sqrTemplate =
+    templates.find(t => t.template_id === 'supplier-qualification-report') ?? null
 
   // "Continue draft" reads from localStorage — no backend phantom drafts
   const localDraftName: string | null = (() => {

@@ -14,7 +14,7 @@ A field-level orchestration system where most fields never call an LLM and every
 
 ---
 
-## What This Is
+## Why Provenance
 
 Structured industrial reports — supplier qualifications, site acceptance tests, audit reports, incident postmortems — get rewritten from scratch every time, despite having a stable template underneath. The variation is in the data, not the structure. The author spends judgment on prose and formatting rather than analysis, output drifts across reviewers, and an LLM tool that generates the whole document from one big prompt produces unverifiable text — a real risk in regulated and engineering-driven workflows.
 
@@ -22,7 +22,7 @@ Provenance is an end-to-end AI engineering project built to demonstrate a differ
 
 The system was built using spec-driven development with Claude Code as a pair programmer: each module started as a written plan in `.agents/plans/`, ran against a validation checklist, and was committed with a numbered entry in `docs/DECISIONS.md`. The constraint was deliberate — no LangChain, no LangGraph, no managed orchestration framework. Raw OpenAI-compatible SDK calls via OpenRouter, Pydantic for structured output, a custom orchestrator and per-strategy handlers throughout.
 
-Two production-quality templates ship in the repo (Supplier Qualification + Site Acceptance Test) running on the same engine with zero code changes between them. The platform claim is demonstrated, not asserted.
+One production-quality template ships today — Supplier Qualification — running end-to-end through intake, generation, review, and export. A second template (Site Acceptance Test) has its YAML drafted to demonstrate the engine generalises across report shapes; full productionization (UI integration, eval coverage, demo polish) is planned for v2.
 
 ---
 
@@ -82,16 +82,16 @@ This is the difference between *"generate a scorecard summary"* and *"summarise 
 
 ## Templates Shipped
 
-Two full templates run on the same engine with no code changes between them.
+One template runs end-to-end on the engine today; a second is YAML-drafted to prove the engine generalises across report shapes.
 
-| Template | Fields | Engineer-typed | LLM-written | Auto-generated |
-|---|---|---|---|---|
-| **Supplier Qualification Report** | 47 | 1 | 8 | 38 |
-| **Site Acceptance Test** | 24 | 0 | 5 | 19 |
+| Template | Fields | Engineer-typed | LLM-written | Auto-generated | Status |
+|---|---|---|---|---|---|
+| **Supplier Qualification Report** | 47 | 1 | 8 | 38 | Production |
+| **Site Acceptance Test** | 24 | 0 | 5 | 19 | YAML drafted — v2 productionization |
 
-"Engineer-typed" counts fields that use the `direct_input` strategy specifically — free-text prose with no template and no LLM. SAT has none: the engineer's observation prose on each figure is routed through `extractor` (a passthrough) so it can feed into a `narrative_llm` synthesis downstream. Both templates still depend heavily on engineer-entered structured data (audit scores, test results, deviations) — that data passes through `extractor` strategy and is counted under "auto-generated" alongside lookups, calculators, and classifiers.
+"Engineer-typed" counts fields that use the `direct_input` strategy specifically — free-text prose with no template and no LLM. The drafted SAT YAML has none: the engineer's observation prose on each figure is routed through `extractor` (a passthrough) so it can feed into a `narrative_llm` synthesis downstream. Both templates still depend heavily on engineer-entered structured data (audit scores, test results, deviations) — that data passes through `extractor` strategy and is counted under "auto-generated" alongside lookups, calculators, and classifiers.
 
-The Supplier Qualification Report is the production demo template — 4-tier verdict driven by a weighted audit scorecard, risk register with computed priority scores, CAR table, and six LLM-written narrative paragraphs gated by the verdict classifier. The Site Acceptance Test exercises a different strategy mix: per-row pass/fail aggregation on a parametric test-results table, a verdict from `fail_count`, and a structured-numerics-plus-engineer-prose pattern for figure narratives. A third template (Non-Conformance Report) sits on the Templates page as a skeleton card with its strategy assignments documented — full build deferred to v2.
+The Supplier Qualification Report is the production template — 4-tier verdict driven by a weighted audit scorecard, risk register with computed priority scores, CAR table, and six LLM-written narrative paragraphs gated by the verdict classifier. The Site Acceptance Test YAML exercises a different strategy mix to prove the pattern generalises: per-row pass/fail aggregation on a parametric test-results table, a verdict from `fail_count`, and a structured-numerics-plus-engineer-prose pattern for figure narratives. A Non-Conformance Report card sits alongside it as a placeholder showing the Templates page is extensible — the full builds (intake flow, eval coverage, demo polish) are v2 work.
 
 ---
 
@@ -103,7 +103,7 @@ A four-frame summary of the SQR flow. For the long-form end-to-end — every int
 
 ![Templates page — SQR is production-ready; SAT and NCR sit alongside](docs/images/screenshots/Template%20Page.png)
 
-*The featured card surfaces the strategy mix before the user commits — `1 direct + 8 review + 38 auto`. SAT and NCR sit below as additional templates using the same engine. Recent drafts and reviews appear in the right pane for quick resumption.*
+*The featured card surfaces the strategy mix before the user commits — `1 direct + 8 review + 38 auto`. SAT (drafted YAML) and an NCR placeholder card sit below, marking the engine's extensibility — full builds are deferred to v2. Recent drafts and reviews appear in the right pane for quick resumption.*
 
 ### 2. Fill the intake
 
@@ -153,7 +153,7 @@ Full results: [`eval/BASELINE.md`](eval/BASELINE.md)
 | Tables & forms | TanStack Table, react-hook-form, zod |
 | Backend | Python 3.11 + FastAPI + Pydantic |
 | Expression evaluator | simpleeval (sandboxed eval for `calculator` and validation rules) |
-| Database | Supabase — Postgres, Auth, Storage, Realtime, Row-Level Security |
+| Database | Supabase — Postgres, Auth, Realtime, Row-Level Security |
 | LLM | OpenRouter — GPT-4o-mini (classifier fallback), Claude Haiku 4.5 (narrative + judge) |
 | Observability | LangSmith tracing on every field operation |
 | Export | Playwright/Chromium (PDF), python-docx (DOCX), native JSON |
@@ -210,7 +210,13 @@ eval/
 supabase/migrations/    initial schema + RLS policies
 nginx/                  reverse proxy config for EC2
 .github/workflows/      deploy.yml (path-filtered CI/CD)
-docs/                   WALKTHROUGH.md
+docs/
+├── ARCHITECTURE.md     strategy taxonomy, SQR field anatomy, YAML pattern
+├── DECISIONS.md        30+ numbered architectural decisions
+├── PRD.md              module-by-module product spec
+├── STATUS.md           build status, validation results, known issues
+├── WALKTHROUGH.md      long-form end-to-end flow
+└── images/             screenshots used in README and walkthrough
 .agents/plans/          per-module spec files (10 numbered plans)
 ```
 
