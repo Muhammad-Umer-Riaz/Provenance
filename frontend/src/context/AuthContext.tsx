@@ -45,6 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
+    // Wipe per-user draft caches so they cannot leak to the next session on this browser
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('draft:'))
+      .forEach(k => localStorage.removeItem(k))
     await supabase.auth.signOut()
   }
 

@@ -111,11 +111,13 @@ export function TemplatesPage() {
   const sqrTemplate =
     templates.find(t => t.template_id === 'supplier-qualification-report') ?? null
 
-  // "Continue draft" reads from localStorage — no backend phantom drafts
+  // "Continue draft" reads from localStorage — no backend phantom drafts.
+  // Key is scoped to (user_id, template_id) so drafts don't leak across accounts
+  // on a shared browser.
   const localDraftName: string | null = (() => {
-    if (!sqrTemplate) return null
+    if (!sqrTemplate || !user?.id) return null
     try {
-      const raw = localStorage.getItem(`draft:${sqrTemplate.template_id}`)
+      const raw = localStorage.getItem(`draft:${user.id}:${sqrTemplate.template_id}`)
       if (!raw) return null
       const parsed = JSON.parse(raw)
       return String(parsed?.intake_data?.supplier_name ?? '') || null

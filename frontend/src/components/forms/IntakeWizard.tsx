@@ -6,6 +6,7 @@ import { Check, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { TemplateListItem } from '@/types/template'
 import { createReport, patchReport } from '@/lib/api'
+import { useAuth } from '@/context/AuthContext'
 import { buildStepSchema } from '@/lib/buildIntakeSchema'
 import { IntakeSidebar, type StepProgressCount } from './IntakeSidebar'
 import { AutosaveIndicator } from './AutosaveIndicator'
@@ -142,9 +143,10 @@ function bottomStatusMessage(step: number, values: IntakeFormValues): string {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-// localStorage key scoped to each template — one slot per template per browser
-function localKey(templateId: string) {
-  return `draft:${templateId}`
+// localStorage key scoped to each (user, template) pair — prevents draft leakage
+// across accounts on a shared browser
+function localKey(userId: string, templateId: string) {
+  return `draft:${userId}:${templateId}`
 }
 
 interface LocalDraft {
@@ -159,6 +161,8 @@ interface Props {
 
 export function IntakeWizard({ template, editReport }: Props) {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const userKey = user?.id ?? 'anon'
   const [currentStep, setCurrentStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -177,7 +181,7 @@ export function IntakeWizard({ template, editReport }: Props) {
   // Read localStorage only when NOT editing an existing report
   const savedLocal: LocalDraft | null = isEditMode ? null : (() => {
     try {
-      const raw = localStorage.getItem(localKey(template.template_id))
+      const raw = localStorage.getItem(localKey(userKey, template.template_id))
       return raw ? JSON.parse(raw) : null
     } catch {
       return null
@@ -224,7 +228,7 @@ export function IntakeWizard({ template, editReport }: Props) {
     if (isEditMode) return
     const sub = watch((values) => {
       const entry: LocalDraft = { id: draftIdRef.current, intake_data: values as Partial<IntakeFormValues> }
-      localStorage.setItem(localKey(template.template_id), JSON.stringify(entry))
+      localStorage.setItem(localKey(userKey, template.template_id), JSON.stringify(entry))
     })
     return () => sub.unsubscribe()
   }, [watch, template.template_id, isEditMode])
@@ -239,7 +243,7 @@ export function IntakeWizard({ template, editReport }: Props) {
       setLastSavedAt(new Date())
       // Keep localStorage in sync with the draft ID
       const entry: LocalDraft = { id: draftIdRef.current, intake_data: getValues() }
-      localStorage.setItem(localKey(template.template_id), JSON.stringify(entry))
+      localStorage.setItem(localKey(userKey, template.template_id), JSON.stringify(entry))
     } catch {
       // Silent — indicator stays at last successful save
     } finally {
@@ -271,7 +275,7 @@ export function IntakeWizard({ template, editReport }: Props) {
         draftIdRef.current = r.id
         // Persist the new ID to localStorage immediately
         const entry: LocalDraft = { id: r.id, intake_data: getValues() }
-        localStorage.setItem(localKey(template.template_id), JSON.stringify(entry))
+        localStorage.setItem(localKey(userKey, template.template_id), JSON.stringify(entry))
         setLastSavedAt(new Date())
       } catch {
         // Non-fatal — form state is in localStorage, user can continue
@@ -321,7 +325,7 @@ export function IntakeWizard({ template, editReport }: Props) {
         reportId = created.id
       }
       // Clear localStorage — only relevant for new drafts
-      if (!isEditMode) localStorage.removeItem(localKey(template.template_id))
+      if (!isEditMode) localStorage.removeItem(localKey(userKey, template.template_id))
       navigate(`/reports/${reportId}/generate`)
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Submission failed')
